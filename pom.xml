@@ -29,7 +29,6 @@
         <module>gateway</module>
         <module>registr</module>
         <module>payment</module>
-        <module>config</module>
     </modules>
 
     <dependencyManagement>
