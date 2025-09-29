@@ -118,6 +118,7 @@
             <artifactId>uap-java</artifactId>
             <version>1.5.2</version>
         </dependency>
+        <!-- ИСПРАВЛЕНО: Явно указываем совместимую версию snakeyaml -->
         <dependency>
             <groupId>org.yaml</groupId>
             <artifactId>snakeyaml</artifactId>
