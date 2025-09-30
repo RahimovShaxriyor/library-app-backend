@@ -1,42 +1,36 @@
 package com.example.paymentservice.dto;
 
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
-import java.math.BigDecimal;
+import lombok.Getter;
+import lombok.Setter;
 
+import java.math.BigDecimal;
+import java.util.Map;
+
+@Getter
+@Setter
 public class PaymentInitiationRequest {
 
-    @NotNull
+    @NotNull(message = "Order ID is required")
     private Long orderId;
 
-    @NotNull
-    @Positive
+    @NotNull(message = "Amount is required")
+    @Positive(message = "Amount must be positive")
     private BigDecimal amount;
 
-    @NotNull
-    private String provider; // "CLICK" or "PAYME"
+    @NotBlank(message = "Provider is required")
+    private String provider;
 
-    public Long getOrderId() {
-        return orderId;
-    }
+    private String currency = "UZS";
 
-    public void setOrderId(Long orderId) {
-        this.orderId = orderId;
-    }
+    private String description;
 
-    public BigDecimal getAmount() {
-        return amount;
-    }
+    private String returnUrl;
 
-    public void setAmount(BigDecimal amount) {
-        this.amount = amount;
-    }
+    private String callbackUrl;
 
-    public String getProvider() {
-        return provider;
-    }
-
-    public void setProvider(String provider) {
-        this.provider = provider;
-    }
+    private Map<String, Object> metadata;
 }
+

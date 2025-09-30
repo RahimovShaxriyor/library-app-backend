@@ -15,9 +15,9 @@ public class PaymeResponseMessage {
 
     public static final PaymeError INVALID_JSON_RPC = new PaymeError(-32600, Map.of(
             "ru", "Неверный JSON-RPC объект",
-            "uz": "Noto'g'ri JSON-RPC ob'ekti",
+            "uz", "Noto'g'ri JSON-RPC ob'ekti",
             "en", "Invalid JSON-RPC object"
-            ));
+    ));
 
     public static final PaymeError METHOD_NOT_FOUND = new PaymeError(-32601, Map.of(
             "ru", "Метод не найден",
@@ -38,7 +38,7 @@ public class PaymeResponseMessage {
     ));
 
     // Transaction Errors
-    public static final PaymeError TRANSACTION_NOT_FOUND = new PaymeError(-31050, Map.of(
+    public static final PaymeError TRANSACTION_NOT_FOUND = new PaymeError(-31003, Map.of(
             "ru", "Транзакция не найдена",
             "uz", "Tranzaksiya topilmadi",
             "en", "Transaction not found"
@@ -156,6 +156,25 @@ public class PaymeResponseMessage {
             "en", "External service error"
     ));
 
+    // Additional Payme specific errors
+    public static final PaymeError INVALID_ACCOUNT_FORMAT = new PaymeError(-31050, Map.of(
+            "ru", "Неверный формат аккаунта",
+            "uz", "Hisob formati noto'g'ri",
+            "en", "Invalid account format"
+    ));
+
+    public static final PaymeError TRANSACTION_IN_PROGRESS = new PaymeError(-31099, Map.of(
+            "ru", "Транзакция в процессе выполнения",
+            "uz", "Tranzaksiya bajarilmoqda",
+            "en", "Transaction in progress"
+    ));
+
+    public static final PaymeError TRANSACTION_CANCELLED = new PaymeError(-31012, Map.of(
+            "ru", "Транзакция отменена",
+            "uz", "Tranzaksiya bekor qilindi",
+            "en", "Transaction cancelled"
+    ));
+
     // Success Messages (for reference)
     public static final Map<String, String> SUCCESS_MESSAGE = Map.of(
             "ru", "Операция выполнена успешно",
@@ -165,6 +184,9 @@ public class PaymeResponseMessage {
 
     // Helper method to get error message by language
     public static String getErrorMessage(PaymeError error, String language) {
+        if (error == null || error.message() == null) {
+            return "Unknown error";
+        }
         String lang = language != null ? language.toLowerCase() : "ru";
         return error.message().getOrDefault(lang, error.message().get("ru"));
     }
@@ -176,14 +198,46 @@ public class PaymeResponseMessage {
             case -32600 -> INVALID_JSON_RPC;
             case -32601 -> METHOD_NOT_FOUND;
             case -32504 -> INVALID_AUTHORIZATION;
-            case -31050 -> TRANSACTION_NOT_FOUND;
+            case -31003 -> TRANSACTION_NOT_FOUND;
+            case -31050 -> INVALID_ACCOUNT;
             case -31051 -> TRANSACTION_ALREADY_EXISTS;
             case -31008 -> CANNOT_PERFORM_OPERATION;
             case -31001 -> INVALID_AMOUNT;
             case -31007 -> UNABLE_TO_CANCEL;
-            case -31008 -> UNABLE_TO_PERFORM;
             case -31009 -> TRANSACTION_TIMEOUT;
+            case -31054 -> MERCHANT_NOT_FOUND;
+            case -31055 -> MERCHANT_INACTIVE;
+            case -31056 -> PAYMENT_METHOD_DISABLED;
+            case -31057 -> INSUFFICIENT_FUNDS;
+            case -31058 -> NETWORK_ERROR;
+            case -31059 -> EXTERNAL_SERVICE_ERROR;
+            case -31099 -> TRANSACTION_IN_PROGRESS;
+            case -31012 -> TRANSACTION_CANCELLED;
             default -> SYSTEM_ERROR;
         };
+    }
+
+    // Helper method to create custom error
+    public static PaymeError createCustomError(int code, String ruMessage, String uzMessage, String enMessage) {
+        return new PaymeError(code, Map.of(
+                "ru", ruMessage,
+                "uz", uzMessage,
+                "en", enMessage
+        ));
+    }
+
+    // Check if error code is related to transaction
+    public static boolean isTransactionError(int code) {
+        return code >= -31099 && code <= -31001;
+    }
+
+    // Check if error code is related to system
+    public static boolean isSystemError(int code) {
+        return code <= -32000 && code >= -32699;
+    }
+
+    // Check if error code is related to authorization
+    public static boolean isAuthorizationError(int code) {
+        return code == -32504;
     }
 }
