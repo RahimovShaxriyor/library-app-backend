@@ -17,7 +17,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class OrderServiceClientFallback implements OrderServiceClient {
 
-    private final OrderServiceClientImpl orderServiceClient;
+    private final OrderServiceClient orderServiceClient; // Используем интерфейс вместо реализации
 
     @Override
     public Mono<OrderDetail> getOrderDetailsForFiscalization(Long orderId) {
@@ -187,8 +187,9 @@ public class OrderServiceClientFallback implements OrderServiceClient {
 
     @Override
     public Mono<Void> refundOrder(Long orderId, String reason, BigDecimal amount) {
-        return orderServiceClient.refundOrder(orderId,
-                        new OrderServiceClientImpl.RefundRequest(reason, amount, "payment-service"))
+        // Создаем RefundRequest через вложенный класс OrderServiceClient
+        RefundRequest refundRequest = new RefundRequest(reason, amount, "payment-service");
+        return orderServiceClient.refundOrder(orderId, refundRequest)
                 .onErrorResume(WebClientResponseException.class, e -> {
                     log.error("Error refunding order, orderId: {}, amount: {}", orderId, amount, e);
                     return Mono.empty();
@@ -201,7 +202,15 @@ public class OrderServiceClientFallback implements OrderServiceClient {
 
     @Override
     public Mono<Void> refundOrder(Long orderId, OrderServiceClientImpl.RefundRequest refundRequest) {
-        return null;
+        return orderServiceClient.refundOrder(orderId, refundRequest)
+                .onErrorResume(WebClientResponseException.class, e -> {
+                    log.error("Error refunding order, orderId: {}, amount: {}", orderId, refundRequest.amount(), e);
+                    return Mono.empty();
+                })
+                .onErrorResume(Exception.class, e -> {
+                    log.error("Unexpected error refunding order, orderId: {}", orderId, e);
+                    return Mono.empty();
+                });
     }
 
     @Override

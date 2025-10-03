@@ -74,5 +74,8 @@ public interface OrderServiceClientImpl extends OrderServiceClient {
     @Override
     Mono<List<OrderStatusHistory>> getOrderStatusHistory(@PathVariable("orderId") Long orderId);
 
+    Mono<Void> refundOrder(Long orderId, String reason, BigDecimal amount);
+
+    Mono<Void> refundOrder(Long orderId, RefundRequest refundRequest);
     record RefundRequest(String reason, BigDecimal amount, String initiatedBy) {}
 }
