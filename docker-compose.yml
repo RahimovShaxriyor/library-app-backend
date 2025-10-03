@@ -1,0 +1,83 @@
+version: '3.9'
+
+services:
+  config-server:
+    build: ./config
+    container_name: config-server
+    ports:
+      - "8888:8888"
+    volumes:
+      - ./library-app-config:/config
+    networks:
+      - library-network
+
+  registr-service:
+    build: ./registr
+    container_name: registr-service
+    ports:
+      - "8761:8761"
+    depends_on:
+      - config-server
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    networks:
+      - library-network
+
+  gateway-service:
+    build: ./gateway
+    container_name: gateway-service
+    ports:
+      - "8080:8080"
+    depends_on:
+      - registr-service
+      - config-server
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    networks:
+      - library-network
+
+  auth-service:
+    build: ./auth
+    container_name: auth-service
+    ports:
+      - "8082:8082"
+    depends_on:
+      - registr-service
+      - config-server
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    networks:
+      - library-network
+
+  order-service:
+    build: ./order
+    container_name: order-service
+    ports:
+      - "8081:8081"
+    depends_on:
+      - registr-service
+      - config-server
+      - rabbitmq
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    networks:
+      - library-network
+
+  payment-service:
+    build: ./payment
+    container_name: payment-service
+    ports:
+      - "9002:9002"
+    depends_on:
+      - registr-service
+      - config-server
+      - rabbitmq
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    networks:
+      - library-network
+
+networks:
+  library-network:
+    driver: bridge
+
