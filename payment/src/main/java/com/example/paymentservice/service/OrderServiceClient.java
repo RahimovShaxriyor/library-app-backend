@@ -136,7 +136,11 @@ public interface OrderServiceClient {
 
     Mono<Boolean> canRefundOrder(Long orderId);
 
+    record RefundRequest(String reason, BigDecimal amount, String initiatedBy) {}
 
+
+
+    Mono<Void> refundOrder(Long orderId, RefundRequest refundRequest);
     Mono<List<OrderStatusHistory>> getOrderStatusHistory(Long orderId);
 
     record OrderStatusHistory(

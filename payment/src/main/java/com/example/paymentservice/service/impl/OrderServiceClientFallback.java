@@ -17,7 +17,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class OrderServiceClientFallback implements OrderServiceClient {
 
-    private final OrderServiceClient orderServiceClient; // Используем интерфейс вместо реализации
+    private final OrderServiceClientImpl orderServiceClient;
 
     @Override
     public Mono<OrderDetail> getOrderDetailsForFiscalization(Long orderId) {
@@ -187,8 +187,7 @@ public class OrderServiceClientFallback implements OrderServiceClient {
 
     @Override
     public Mono<Void> refundOrder(Long orderId, String reason, BigDecimal amount) {
-        // Создаем RefundRequest через вложенный класс OrderServiceClient
-        RefundRequest refundRequest = new RefundRequest(reason, amount, "payment-service");
+        OrderServiceClientImpl.RefundRequest refundRequest = new OrderServiceClientImpl.RefundRequest(reason, amount, "payment-service");
         return orderServiceClient.refundOrder(orderId, refundRequest)
                 .onErrorResume(WebClientResponseException.class, e -> {
                     log.error("Error refunding order, orderId: {}, amount: {}", orderId, amount, e);
@@ -202,7 +201,18 @@ public class OrderServiceClientFallback implements OrderServiceClient {
 
     @Override
     public Mono<Void> refundOrder(Long orderId, OrderServiceClientImpl.RefundRequest refundRequest) {
-        return orderServiceClient.refundOrder(orderId, refundRequest)
+        return null;
+    }
+
+    @Override
+    public Mono<Void> refundOrder(Long orderId, OrderServiceClient.RefundRequest refundRequest) {
+        // Конвертируем OrderServiceClient.RefundRequest в OrderServiceClientImpl.RefundRequest
+        OrderServiceClientImpl.RefundRequest implRefundRequest = new OrderServiceClientImpl.RefundRequest(
+                refundRequest.reason(),
+                refundRequest.amount(),
+                refundRequest.initiatedBy()
+        );
+        return orderServiceClient.refundOrder(orderId, implRefundRequest)
                 .onErrorResume(WebClientResponseException.class, e -> {
                     log.error("Error refunding order, orderId: {}, amount: {}", orderId, refundRequest.amount(), e);
                     return Mono.empty();

@@ -2,6 +2,7 @@ package com.example.paymentservice.config;
 
 import com.example.paymentservice.service.OrderServiceClient;
 import com.example.paymentservice.service.impl.OrderServiceClientFallback;
+import com.example.paymentservice.service.impl.OrderServiceClientImpl;
 import org.springframework.cloud.client.loadbalancer.LoadBalanced;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -20,7 +21,7 @@ public class HttpClientConfig {
     }
 
     @Bean
-    public OrderServiceClient orderServiceClient(WebClient.Builder webClientBuilder) {
+    public OrderServiceClientImpl orderServiceClientImpl(WebClient.Builder webClientBuilder) {
         WebClient webClient = webClientBuilder
                 .baseUrl("http://order-service")
                 .build();
@@ -29,13 +30,12 @@ public class HttpClientConfig {
                 .builderFor(WebClientAdapter.create(webClient))
                 .build();
 
-        // Создаем клиент напрямую из интерфейса OrderServiceClient
-        return factory.createClient(OrderServiceClient.class);
+        return factory.createClient(OrderServiceClientImpl.class);
     }
 
     @Bean
     @Primary
-    public OrderServiceClient orderServiceClientWithFallback(OrderServiceClient orderServiceClient) {
-        return new OrderServiceClientFallback(orderServiceClient);
+    public OrderServiceClient orderServiceClient(OrderServiceClientImpl orderServiceClientImpl) {
+        return new OrderServiceClientFallback(orderServiceClientImpl);
     }
 }
