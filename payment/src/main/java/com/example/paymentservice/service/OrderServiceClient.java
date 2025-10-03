@@ -90,44 +90,28 @@ public interface OrderServiceClient {
             String notificationId
     ) {}
 
-    /**
-     * Получение деталей заказа для фискализации
-     */
+
     Mono<OrderDetail> getOrderDetailsForFiscalization(Long orderId);
 
-    /**
-     * Проверка существования заказа
-     */
+
     Mono<Boolean> checkOrderExists(Long orderId);
 
-    /**
-     * Расширенная проверка заказа с дополнительной информацией
-     */
+
     Mono<OrderExistsResponse> checkOrderExistsWithDetails(Long orderId);
 
-    /**
-     * Валидация заказа для оплаты
-     */
+
     Mono<OrderValidationResponse> validateOrderForPayment(Long orderId);
 
-    /**
-     * Получение полной информации о заказе
-     */
+
     Mono<OrderResponse> getOrderById(Long orderId);
 
-    /**
-     * Получение суммы заказа
-     */
+
     Mono<BigDecimal> getOrderAmount(Long orderId);
 
-    /**
-     * Обновление статуса заказа
-     */
+
     Mono<Void> updateOrderStatus(Long orderId, StatusUpdateRequest status);
 
-    /**
-     * Обновление статуса заказа после оплаты (упрощенный метод)
-     */
+
     Mono<Void> updateOrderStatus(Long orderId, String status);
 
 
