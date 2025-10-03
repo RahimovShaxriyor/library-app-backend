@@ -57,7 +57,6 @@ services:
     depends_on:
       - registr-service
       - config-server
-      - rabbitmq
     environment:
       - SPRING_PROFILES_ACTIVE=docker
     networks:
@@ -71,7 +70,6 @@ services:
     depends_on:
       - registr-service
       - config-server
-      - rabbitmq
     environment:
       - SPRING_PROFILES_ACTIVE=docker
     networks:
