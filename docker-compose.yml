@@ -1,25 +1,11 @@
 version: '3.9'
 
 services:
-  config-server:
-    build: ./config
-    container_name: config-server
-    ports:
-      - "8888:8888"
-    volumes:
-      - ./library-app-config:/config
-    networks:
-      - library-network
-
   registr-service:
     build: ./registr
     container_name: registr-service
     ports:
       - "8761:8761"
-    depends_on:
-      - config-server
-    environment:
-      - SPRING_PROFILES_ACTIVE=docker
     networks:
       - library-network
 
@@ -30,7 +16,6 @@ services:
       - "8080:8080"
     depends_on:
       - registr-service
-      - config-server
     environment:
       - SPRING_PROFILES_ACTIVE=docker
     networks:
@@ -43,7 +28,6 @@ services:
       - "8082:8082"
     depends_on:
       - registr-service
-      - config-server
     environment:
       - SPRING_PROFILES_ACTIVE=docker
     networks:
@@ -56,7 +40,6 @@ services:
       - "8081:8081"
     depends_on:
       - registr-service
-      - config-server
     environment:
       - SPRING_PROFILES_ACTIVE=docker
     networks:
@@ -69,7 +52,6 @@ services:
       - "9002:9002"
     depends_on:
       - registr-service
-      - config-server
     environment:
       - SPRING_PROFILES_ACTIVE=docker
     networks:

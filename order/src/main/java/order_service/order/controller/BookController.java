@@ -22,48 +22,55 @@ public class BookController {
 
     @PostMapping
     @PreAuthorize("hasAuthority('ADMIN')")
-    public ResponseEntity<BookResponseDto> createBook(@Valid @RequestBody BookRequestDto bookRequestDto) {
-        BookResponseDto createdBook = bookService.createBook(bookRequestDto);
-        return new ResponseEntity<>(createdBook, HttpStatus.CREATED);
+    @ResponseStatus(HttpStatus.CREATED)
+    public BookResponseDto createBook(@Valid @RequestBody BookRequestDto bookRequestDto) {
+        return bookService.createBook(bookRequestDto);
     }
 
     @GetMapping
-    public ResponseEntity<Page<BookResponseDto>> getAllBooks(Pageable pageable) {
-        Page<BookResponseDto> books = bookService.getAllBooks(pageable);
-        return ResponseEntity.ok(books);
+    public Page<BookResponseDto> getAllBooks(Pageable pageable) {
+        return bookService.getAllBooks(pageable);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<BookResponseDto> getBookById(@PathVariable Long id) {
-        BookResponseDto book = bookService.getBookById(id);
-        return ResponseEntity.ok(book);
+    public BookResponseDto getBookById(@PathVariable Long id) {
+        return bookService.getBookById(id);
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('ADMIN')")
-    public ResponseEntity<BookResponseDto> updateBook(@PathVariable Long id, @Valid @RequestBody BookRequestDto bookRequestDto) {
-        BookResponseDto updatedBook = bookService.updateBook(id, bookRequestDto);
-        return ResponseEntity.ok(updatedBook);
+    public BookResponseDto updateBook(@PathVariable Long id,
+                                      @Valid @RequestBody BookRequestDto bookRequestDto) {
+        return bookService.updateBook(id, bookRequestDto);
     }
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('ADMIN')")
-    public ResponseEntity<Void> deleteBook(@PathVariable Long id) {
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteBook(@PathVariable Long id) {
         bookService.deleteBook(id);
-        return ResponseEntity.noContent().build();
     }
 
+    @PatchMapping("/{id}/status")
+    @PreAuthorize("hasAuthority('ADMIN')")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void updateBookStatus(@PathVariable Long id,
+                                 @RequestParam BookAvailabilityStatus status) {
+        bookService.updateAvailabilityStatus(id, status);
+    }
+
+    // Дополнительные endpoints для удобства
     @PutMapping("/{id}/deactivate")
     @PreAuthorize("hasAuthority('ADMIN')")
-    public ResponseEntity<Void> deactivateBook(@PathVariable Long id) {
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deactivateBook(@PathVariable Long id) {
         bookService.updateAvailabilityStatus(id, BookAvailabilityStatus.INACTIVE);
-        return ResponseEntity.ok().build();
     }
 
     @PutMapping("/{id}/activate")
     @PreAuthorize("hasAuthority('ADMIN')")
-    public ResponseEntity<Void> activateBook(@PathVariable Long id) {
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void activateBook(@PathVariable Long id) {
         bookService.updateAvailabilityStatus(id, BookAvailabilityStatus.ACTIVE);
-        return ResponseEntity.ok().build();
     }
 }
