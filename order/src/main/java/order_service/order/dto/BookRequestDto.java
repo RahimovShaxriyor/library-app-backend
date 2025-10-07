@@ -73,6 +73,10 @@ public class BookRequestDto {
 
     private Boolean availableForOrder;
 
+    public String getTitle() {
+        return this.name;
+    }
+
     public void validate() {
         if (name != null && name.trim().isEmpty()) {
             throw new IllegalArgumentException("Book name cannot be empty");
@@ -106,7 +110,6 @@ public class BookRequestDto {
 
     private void validateIsbn() {
         if (isbn != null && !isbn.trim().isEmpty()) {
-            // Базовая проверка ISBN (можно добавить более сложную логику)
             String cleanIsbn = isbn.replaceAll("[\\s-]", "");
             if (cleanIsbn.length() != 10 && cleanIsbn.length() != 13) {
                 throw new IllegalArgumentException("ISBN must be 10 or 13 digits");
@@ -215,6 +218,5 @@ public class BookRequestDto {
                 name, author, season, pages, price, quantity
         );
     }
-
-
 }
+

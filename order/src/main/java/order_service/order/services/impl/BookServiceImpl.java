@@ -107,7 +107,7 @@ public class BookServiceImpl implements BookService {
         }
 
         if (!bookToUpdate.getPrice().equals(bookRequestDto.getPrice())) {
-            boolean hasActiveOrders = orderItemRepository.existsByBookIdAndOrder_StatusIn(id, ACTIVE_ORDER_STATUSES);
+            boolean hasActiveOrders = orderItemRepository.existsByBookIdAndOrder_StatusIn(id, (List<OrderStatus>) ACTIVE_ORDER_STATUSES);
             if (hasActiveOrders) {
                 throw new ValidationException(
                         "Cannot update price for book '" + bookToUpdate.getTitle() +
@@ -137,7 +137,7 @@ public class BookServiceImpl implements BookService {
         Book book = bookRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Book not found with id: " + id));
 
-        boolean hasActiveOrders = orderItemRepository.existsByBookIdAndOrder_StatusIn(id, ACTIVE_ORDER_STATUSES);
+        boolean hasActiveOrders = orderItemRepository.existsByBookIdAndOrder_StatusIn(id, (List<OrderStatus>) ACTIVE_ORDER_STATUSES);
         if (hasActiveOrders) {
             throw new ValidationException(
                     "Cannot delete book '" + book.getTitle() +
@@ -161,7 +161,7 @@ public class BookServiceImpl implements BookService {
                 .orElseThrow(() -> new ResourceNotFoundException("Book not found with id: " + id));
 
         if (status == BookAvailabilityStatus.INACTIVE) {
-            boolean hasActiveOrders = orderItemRepository.existsByBookIdAndOrder_StatusIn(id, ACTIVE_ORDER_STATUSES);
+            boolean hasActiveOrders = orderItemRepository.existsByBookIdAndOrder_StatusIn(id, (List<OrderStatus>) ACTIVE_ORDER_STATUSES);
             if (hasActiveOrders) {
                 throw new ValidationException(
                         "Cannot deactivate book '" + book.getTitle() +
@@ -290,7 +290,7 @@ public class BookServiceImpl implements BookService {
         for (Book book : books) {
             if (status == BookAvailabilityStatus.INACTIVE) {
                 boolean hasActiveOrders = orderItemRepository.existsByBookIdAndOrder_StatusIn(
-                        book.getId(), ACTIVE_ORDER_STATUSES);
+                        book.getId(), (List<OrderStatus>) ACTIVE_ORDER_STATUSES);
                 if (hasActiveOrders) {
                     log.warn("⚠️ Skipping book {} due to active orders", book.getId());
                     continue;

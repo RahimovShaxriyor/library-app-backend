@@ -123,4 +123,39 @@ public interface BookRepository extends JpaRepository<Book, Long> {
     Page<Book> findPopularBooks(
             @Param("status") BookAvailabilityStatus status,
             Pageable pageable);
+
+    // 🔹 Поиск по названию или автору с исключением статуса (исправленный вариант)
+    Page<Book> findByTitleContainingIgnoreCaseOrAuthorContainingIgnoreCaseAndAvailabilityStatusNot(
+            String title,
+            String author,
+            BookAvailabilityStatus excludedStatus,
+            Pageable pageable
+    );
+
+    // 🔹 Поиск по автору с исключением статуса
+    Page<Book> findByAuthorContainingIgnoreCaseAndAvailabilityStatusNot(
+            String author,
+            BookAvailabilityStatus excludedStatus,
+            Pageable pageable
+    );
+
+    // 🔹 Поиск по статусу и количеству меньше/равно
+    Page<Book> findByAvailabilityStatusAndQuantityLessThanEqual(
+            BookAvailabilityStatus status,
+            int quantity,
+            Pageable pageable
+    );
+
+    // 🔹 Подсчёт по статусу и точному количеству
+    long countByAvailabilityStatusAndQuantity(
+            BookAvailabilityStatus status,
+            int quantity
+    );
+
+    // 🔹 Подсчёт по статусу и количеству меньше/равно
+    long countByAvailabilityStatusAndQuantityLessThanEqual(
+            BookAvailabilityStatus status,
+            int quantity
+    );
+
 }

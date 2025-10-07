@@ -45,9 +45,8 @@ public class OrderServiceImpl implements OrderService {
     public OrderResponseDto createOrder(CreateOrderRequestDto request, UserDetails currentUser) {
         log.info("Creating order for user: {}", currentUser.getUsername());
 
-        // Валидация запроса
         validateOrderRequest(request);
-        request.validate(); // Бизнес-валидация DTO
+        request.validate();
 
         String userEmailAsId = currentUser.getUsername();
 
@@ -173,7 +172,6 @@ public class OrderServiceImpl implements OrderService {
         return orderMapper.toOrderResponseDto(order);
     }
 
-    // Admin methods
     @Override
     public Page<OrderResponseDto> getAllOrders(Pageable pageable) {
         log.debug("Fetching all orders with pagination");
@@ -186,7 +184,6 @@ public class OrderServiceImpl implements OrderService {
         return orderRepository.findByStatus(status, pageable).map(orderMapper::toOrderResponseDto);
     }
 
-    // Private helper methods
     private void validateOrderRequest(CreateOrderRequestDto request) {
         if (request == null) {
             throw new ValidationException("Order request cannot be null");
@@ -197,18 +194,17 @@ public class OrderServiceImpl implements OrderService {
     }
 
     private Order buildOrder(String userId) {
-        return Order.builder()
-                .userId(userId)
-                .status(OrderStatus.PENDING)
-                .createdAt(LocalDateTime.now())
-                .build();
+        Order order = new Order();
+        order.setUserId(userId);
+        order.setStatus(OrderStatus.PENDING);
+        order.setCreatedAt(LocalDateTime.now());
+        return order;
     }
 
     private List<OrderItem> processOrderItems(List<OrderItemDto> itemDtos, Order order) {
         List<OrderItem> orderItems = new ArrayList<>();
 
         for (OrderItemDto itemDto : itemDtos) {
-            // Валидация каждого item
             itemDto.validate();
 
             Book book = bookRepository.findByIdForUpdate(itemDto.getBookId())
@@ -256,7 +252,7 @@ public class OrderServiceImpl implements OrderService {
 
     private BigDecimal calculateTotalPrice(List<OrderItem> orderItems) {
         return orderItems.stream()
-                .map(item -> item.getPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
+                .map(item -> item.getPrice().multiply(new BigDecimal(item.getQuantity())))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 

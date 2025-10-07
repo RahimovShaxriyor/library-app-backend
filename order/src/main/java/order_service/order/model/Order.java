@@ -78,26 +78,24 @@ public class Order {
     @Version
     private Long version;
 
-    // Helper methods
-    public void addOrderItem(OrderItem item) {
-        items.add(item);
-        item.setOrder(this);
-    }
+//    public void addOrderItem(OrderItem item) {
+//        items.add(item);
+//        item.setOrder(this);
+//    }
+//
+//    public void removeOrderItem(OrderItem item) {
+//        items.remove(item);
+//        item.setOrder(null);
+//    }
+//
+//    public boolean canBeCancelled() {
+//        return status == OrderStatus.PENDING || status == OrderStatus.PAID;
+//    }
+//
+//    public boolean isCompleted() {
+//        return status == OrderStatus.DELIVERED || status == OrderStatus.CANCELLED;
+//    }
 
-    public void removeOrderItem(OrderItem item) {
-        items.remove(item);
-        item.setOrder(null);
-    }
-
-    public boolean canBeCancelled() {
-        return status == OrderStatus.PENDING || status == OrderStatus.PAID;
-    }
-
-    public boolean isCompleted() {
-        return status == OrderStatus.DELIVERED || status == OrderStatus.CANCELLED;
-    }
-
-    // toString исключая циклические зависимости
     @Override
     public String toString() {
         return "Order{" +
