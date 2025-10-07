@@ -303,8 +303,6 @@ public class BookServiceImpl implements BookService {
         log.info("✅ Bulk status update completed for {} books", books.size());
     }
 
-    // ==================== ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ ====================
-
     private void validateBookRequest(BookRequestDto bookRequestDto) {
         if (bookRequestDto.getTitle() == null || bookRequestDto.getTitle().trim().isEmpty()) {
             throw new ValidationException("Book title is required");
@@ -335,7 +333,6 @@ public class BookServiceImpl implements BookService {
         }
     }
 
-    // ==================== DTO ДЛЯ СТАТИСТИКИ ====================
 
     public record BookStatistics(
             long totalBooks,

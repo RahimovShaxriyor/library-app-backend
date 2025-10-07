@@ -29,7 +29,6 @@ public record PaymentSuccessEvent(
 ) {
 
     public PaymentSuccessEvent {
-        // Compact constructor - validation and initialization
         if (paymentTimestamp == null) {
             paymentTimestamp = LocalDateTime.now();
         }
@@ -42,7 +41,6 @@ public record PaymentSuccessEvent(
             throw new IllegalArgumentException("Amount must be positive");
         }
 
-        // Trim and validate strings
         if (paymentId != null) {
             paymentId = paymentId.trim();
             if (paymentId.isEmpty()) {
@@ -55,25 +53,21 @@ public record PaymentSuccessEvent(
         }
     }
 
-    // Convenience constructor without timestamp, reference and amount
-    public PaymentSuccessEvent(Long orderId, String paymentId) {
-        this(orderId, paymentId, LocalDateTime.now(), null, null);
-    }
-
-    // Convenience constructor with timestamp but without reference and amount
-    public PaymentSuccessEvent(Long orderId, String paymentId, LocalDateTime paymentTimestamp) {
-        this(orderId, paymentId, paymentTimestamp, null, null);
-    }
-
-    // Convenience constructor with timestamp and reference but without amount
-    public PaymentSuccessEvent(Long orderId, String paymentId, LocalDateTime paymentTimestamp, String transactionReference) {
-        this(orderId, paymentId, paymentTimestamp, transactionReference, null);
-    }
-
-    // Utility methods
-    public boolean isRecentPayment() {
-        return paymentTimestamp.isAfter(LocalDateTime.now().minusMinutes(30));
-    }
+//    public PaymentSuccessEvent(Long orderId, String paymentId) {
+//        this(orderId, paymentId, LocalDateTime.now(), null, null);
+//    }
+//
+//    public PaymentSuccessEvent(Long orderId, String paymentId, LocalDateTime paymentTimestamp) {
+//        this(orderId, paymentId, paymentTimestamp, null, null);
+//    }
+//
+//    public PaymentSuccessEvent(Long orderId, String paymentId, LocalDateTime paymentTimestamp, String transactionReference) {
+//        this(orderId, paymentId, paymentTimestamp, transactionReference, null);
+//    }
+//
+//    public boolean isRecentPayment() {
+//        return paymentTimestamp.isAfter(LocalDateTime.now().minusMinutes(30));
+//    }
 
     public boolean hasTransactionReference() {
         return transactionReference != null && !transactionReference.trim().isEmpty();
@@ -83,58 +77,57 @@ public record PaymentSuccessEvent(
         return amount != null && amount > 0;
     }
 
-    public boolean isHighValuePayment() {
-        return hasAmount() && amount > 100000.0; // 100,000 units
-    }
+//    public boolean isHighValuePayment() {
+//        return hasAmount() && amount > 100000.0; // 100,000 units
+//    }
+//
+//    // Static factory methods
+//    public static PaymentSuccessEvent of(Long orderId, String paymentId) {
+//        return new PaymentSuccessEvent(orderId, paymentId);
+//    }
+//
+//    public static PaymentSuccessEvent withReference(Long orderId, String paymentId, String transactionReference) {
+//        return new PaymentSuccessEvent(orderId, paymentId, LocalDateTime.now(), transactionReference);
+//    }
+//
+//    public static PaymentSuccessEvent withAmount(Long orderId, String paymentId, Double amount) {
+//        return new PaymentSuccessEvent(orderId, paymentId, LocalDateTime.now(), null, amount);
+//    }
+//
+//    public static PaymentSuccessEvent full(Long orderId, String paymentId, String transactionReference, Double amount) {
+//        return new PaymentSuccessEvent(orderId, paymentId, LocalDateTime.now(), transactionReference, amount);
+//    }
+//
+//    public void validate() {
+//        if (orderId == null) {
+//            throw new IllegalArgumentException("Order ID cannot be null");
+//        }
+//        if (paymentId == null || paymentId.trim().isEmpty()) {
+//            throw new IllegalArgumentException("Payment ID cannot be null or empty");
+//        }
+//        if (paymentTimestamp == null) {
+//            throw new IllegalArgumentException("Payment timestamp cannot be null");
+//        }
+//        if (paymentTimestamp.isAfter(LocalDateTime.now())) {
+//            throw new IllegalArgumentException("Payment timestamp cannot be in the future");
+//        }
+//        if (amount != null && amount <= 0) {
+//            throw new IllegalArgumentException("Amount must be positive");
+//        }
+//    }
 
-    // Static factory methods
-    public static PaymentSuccessEvent of(Long orderId, String paymentId) {
-        return new PaymentSuccessEvent(orderId, paymentId);
-    }
 
-    public static PaymentSuccessEvent withReference(Long orderId, String paymentId, String transactionReference) {
-        return new PaymentSuccessEvent(orderId, paymentId, LocalDateTime.now(), transactionReference);
-    }
-
-    public static PaymentSuccessEvent withAmount(Long orderId, String paymentId, Double amount) {
-        return new PaymentSuccessEvent(orderId, paymentId, LocalDateTime.now(), null, amount);
-    }
-
-    public static PaymentSuccessEvent full(Long orderId, String paymentId, String transactionReference, Double amount) {
-        return new PaymentSuccessEvent(orderId, paymentId, LocalDateTime.now(), transactionReference, amount);
-    }
-
-    // Validation method for service layer
-    public void validate() {
-        if (orderId == null) {
-            throw new IllegalArgumentException("Order ID cannot be null");
-        }
-        if (paymentId == null || paymentId.trim().isEmpty()) {
-            throw new IllegalArgumentException("Payment ID cannot be null or empty");
-        }
-        if (paymentTimestamp == null) {
-            throw new IllegalArgumentException("Payment timestamp cannot be null");
-        }
-        if (paymentTimestamp.isAfter(LocalDateTime.now())) {
-            throw new IllegalArgumentException("Payment timestamp cannot be in the future");
-        }
-        if (amount != null && amount <= 0) {
-            throw new IllegalArgumentException("Amount must be positive");
-        }
-    }
-
-    // JSON representation for logging
-    public String toJsonString() {
-        return String.format(
-                "{\"orderId\": %d, \"paymentId\": \"%s\", \"timestamp\": \"%s\", \"hasReference\": %s, \"hasAmount\": %s}",
-                orderId, paymentId, paymentTimestamp, hasTransactionReference(), hasAmount()
-        );
-    }
-
-    // Business method to determine if payment requires additional verification
-    public boolean requiresVerification() {
-        return isHighValuePayment() || !hasTransactionReference();
-    }
+//
+//    public String toJsonString() {
+//        return String.format(
+//                "{\"orderId\": %d, \"paymentId\": \"%s\", \"timestamp\": \"%s\", \"hasReference\": %s, \"hasAmount\": %s}",
+//                orderId, paymentId, paymentTimestamp, hasTransactionReference(), hasAmount()
+//        );
+//    }
+//
+//    public boolean requiresVerification() {
+//        return isHighValuePayment() || !hasTransactionReference();
+//    }
 
     @Override
     public String toString() {

@@ -17,39 +17,31 @@ import java.util.Optional;
 @Repository
 public interface BookRepository extends JpaRepository<Book, Long> {
 
-    // Блокировка для конкурентного доступа
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT b FROM Book b WHERE b.id = :id")
     Optional<Book> findByIdForUpdate(@Param("id") Long id);
 
-    // Нативные запросы для Oracle
     @Query(value = "SELECT * FROM books WHERE id = :id FOR UPDATE", nativeQuery = true)
     Optional<Book> findByIdForUpdateNative(@Param("id") Long id);
 
-    // Поиск по названию и автору (для проверки дубликатов)
     boolean existsByTitleAndAuthor(String title, String author);
 
     boolean existsByTitleAndAuthorAndIdNot(String title, String author, Long id);
 
-    // Поиск по статусу доступности
     Page<Book> findByAvailabilityStatus(BookAvailabilityStatus status, Pageable pageable);
 
     Page<Book> findByAvailabilityStatusNot(BookAvailabilityStatus status, Pageable pageable);
 
-    // Поиск активных книг (не удаленных и активных)
-    Page<Book> findByAvailabilityStatusIn(List<BookAvailabilityStatus> statuses, Pageable pageable);
+//    Page<Book> findByAvailabilityStatusIn(List<BookAvailabilityStatus> statuses, Pageable pageable);
+//
+//    Page<Book> findByAuthorContainingIgnoreCase(String author, Pageable pageable);
+//
+//    List<Book> findByAuthor(String author);
+//
+//    Page<Book> findByTitleContainingIgnoreCase(String title, Pageable pageable);
+//
+//    List<Book> findByTitle(String title);
 
-    // Поиск по автору
-    Page<Book> findByAuthorContainingIgnoreCase(String author, Pageable pageable);
-
-    List<Book> findByAuthor(String author);
-
-    // Поиск по названию
-    Page<Book> findByTitleContainingIgnoreCase(String title, Pageable pageable);
-
-    List<Book> findByTitle(String title);
-
-    // Комбинированный поиск по названию и автору
     @Query("SELECT b FROM Book b WHERE " +
             "LOWER(b.title) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
             "LOWER(b.author) LIKE LOWER(CONCAT('%', :query, '%'))")
@@ -66,7 +58,7 @@ public interface BookRepository extends JpaRepository<Book, Long> {
             @Param("excludedStatus") BookAvailabilityStatus excludedStatus,
             Pageable pageable);
 
-    Page<Book> findByQuantityGreaterThan(Integer quantity, Pageable pageable);
+//    Page<Book> findByQuantityGreaterThan(Integer quantity, Pageable pageable);
 
     Page<Book> findByAvailabilityStatusAndQuantityGreaterThan(
             BookAvailabilityStatus status, Integer quantity, Pageable pageable);
@@ -109,7 +101,6 @@ public interface BookRepository extends JpaRepository<Book, Long> {
     @Query("UPDATE Book b SET b.quantity = b.quantity + :quantity WHERE b.id = :id")
     int increaseQuantity(@Param("id") Long id, @Param("quantity") Integer quantity);
 
-    // Проверка существования книги с достаточным количеством
     @Query("SELECT CASE WHEN COUNT(b) > 0 THEN true ELSE false END FROM Book b WHERE b.id = :id AND b.quantity >= :quantity AND b.availabilityStatus = :status")
     boolean existsByIdAndQuantityGreaterThanEqualAndAvailabilityStatus(
             @Param("id") Long id,
@@ -124,7 +115,6 @@ public interface BookRepository extends JpaRepository<Book, Long> {
             @Param("status") BookAvailabilityStatus status,
             Pageable pageable);
 
-    // 🔹 Поиск по названию или автору с исключением статуса (исправленный вариант)
     Page<Book> findByTitleContainingIgnoreCaseOrAuthorContainingIgnoreCaseAndAvailabilityStatusNot(
             String title,
             String author,
@@ -132,27 +122,23 @@ public interface BookRepository extends JpaRepository<Book, Long> {
             Pageable pageable
     );
 
-    // 🔹 Поиск по автору с исключением статуса
     Page<Book> findByAuthorContainingIgnoreCaseAndAvailabilityStatusNot(
             String author,
             BookAvailabilityStatus excludedStatus,
             Pageable pageable
     );
 
-    // 🔹 Поиск по статусу и количеству меньше/равно
     Page<Book> findByAvailabilityStatusAndQuantityLessThanEqual(
             BookAvailabilityStatus status,
             int quantity,
             Pageable pageable
     );
 
-    // 🔹 Подсчёт по статусу и точному количеству
     long countByAvailabilityStatusAndQuantity(
             BookAvailabilityStatus status,
             int quantity
     );
 
-    // 🔹 Подсчёт по статусу и количеству меньше/равно
     long countByAvailabilityStatusAndQuantityLessThanEqual(
             BookAvailabilityStatus status,
             int quantity

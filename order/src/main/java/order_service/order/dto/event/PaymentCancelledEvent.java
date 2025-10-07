@@ -23,7 +23,6 @@ public record PaymentCancelledEvent(
 ) {
 
     public PaymentCancelledEvent {
-        // Compact constructor - validation and initialization
         if (cancellationTimestamp == null) {
             cancellationTimestamp = LocalDateTime.now();
         }
@@ -32,7 +31,6 @@ public record PaymentCancelledEvent(
             throw new IllegalArgumentException("Order ID must be positive");
         }
 
-        // Trim and validate strings
         if (paymentId != null) {
             paymentId = paymentId.trim();
             if (paymentId.isEmpty()) {
@@ -48,12 +46,10 @@ public record PaymentCancelledEvent(
         }
     }
 
-    // Convenience constructor without timestamp
     public PaymentCancelledEvent(Long orderId, String paymentId, String reason) {
         this(orderId, paymentId, reason, LocalDateTime.now());
     }
 
-    // Utility methods
     public boolean isRecentCancellation() {
         return cancellationTimestamp.isAfter(LocalDateTime.now().minusHours(24));
     }
@@ -74,7 +70,6 @@ public record PaymentCancelledEvent(
         );
     }
 
-    // Static factory methods
     public static PaymentCancelledEvent systemCancellation(Long orderId, String paymentId, String systemReason) {
         return new PaymentCancelledEvent(
                 orderId,

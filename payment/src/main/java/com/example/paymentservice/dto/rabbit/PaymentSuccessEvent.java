@@ -21,11 +21,11 @@ public class PaymentSuccessEvent implements Serializable {
     private LocalDateTime paymentDate;
     private LocalDateTime createdAt;
 
-    public PaymentSuccessEvent(Long orderId) {
-        this.orderId = orderId;
-        this.paymentDate = LocalDateTime.now();
-        this.createdAt = LocalDateTime.now();
-    }
+//    public PaymentSuccessEvent(Long orderId) {
+//        this.orderId = orderId;
+//        this.paymentDate = LocalDateTime.now();
+//        this.createdAt = LocalDateTime.now();
+//    }
 
     public PaymentSuccessEvent(Long orderId, Long paymentId) {
         this.paymentId = paymentId;
