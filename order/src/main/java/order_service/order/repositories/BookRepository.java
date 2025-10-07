@@ -2,6 +2,7 @@ package order_service.order.repositories;
 
 import order_service.order.model.Book;
 import order_service.order.model.BookAvailabilityStatus;
+import order_service.order.model.StockStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -9,139 +10,46 @@ import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
-
 import jakarta.persistence.LockModeType;
-import java.util.List;
+
 import java.util.Optional;
 
 @Repository
 public interface BookRepository extends JpaRepository<Book, Long> {
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("SELECT b FROM Book b WHERE b.id = :id")
-    Optional<Book> findByIdForUpdate(@Param("id") Long id);
-
-    @Query(value = "SELECT * FROM books WHERE id = :id FOR UPDATE", nativeQuery = true)
-    Optional<Book> findByIdForUpdateNative(@Param("id") Long id);
+    Optional<Book> findByIdForUpdate(Long id);
 
     boolean existsByTitleAndAuthor(String title, String author);
 
     boolean existsByTitleAndAuthorAndIdNot(String title, String author, Long id);
 
-    Page<Book> findByAvailabilityStatus(BookAvailabilityStatus status, Pageable pageable);
-
     Page<Book> findByAvailabilityStatusNot(BookAvailabilityStatus status, Pageable pageable);
 
-//    Page<Book> findByAvailabilityStatusIn(List<BookAvailabilityStatus> statuses, Pageable pageable);
-//
-//    Page<Book> findByAuthorContainingIgnoreCase(String author, Pageable pageable);
-//
-//    List<Book> findByAuthor(String author);
-//
-//    Page<Book> findByTitleContainingIgnoreCase(String title, Pageable pageable);
-//
-//    List<Book> findByTitle(String title);
-
     @Query("SELECT b FROM Book b WHERE " +
-            "LOWER(b.title) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
-            "LOWER(b.author) LIKE LOWER(CONCAT('%', :query, '%'))")
-    Page<Book> findByTitleOrAuthorContainingIgnoreCase(@Param("query") String query, Pageable pageable);
-
-    // Поиск с исключением статуса
-    @Query("SELECT b FROM Book b WHERE " +
-            "(LOWER(b.title) LIKE LOWER(CONCAT('%', :title, '%')) OR " +
-            "LOWER(b.author) LIKE LOWER(CONCAT('%', :author, '%'))) " +
+            "(LOWER(b.title) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+            "LOWER(b.author) LIKE LOWER(CONCAT('%', :query, '%'))) " +
             "AND b.availabilityStatus != :excludedStatus")
-    Page<Book> findByTitleOrAuthorContainingIgnoreCaseAndAvailabilityStatusNot(
-            @Param("title") String title,
-            @Param("author") String author,
+    Page<Book> findByNameContainingIgnoreCaseOrAuthorContainingIgnoreCaseAndAvailabilityStatusNot(
+            @Param("query") String query,
             @Param("excludedStatus") BookAvailabilityStatus excludedStatus,
             Pageable pageable);
 
-//    Page<Book> findByQuantityGreaterThan(Integer quantity, Pageable pageable);
-
-    Page<Book> findByAvailabilityStatusAndQuantityGreaterThan(
-            BookAvailabilityStatus status, Integer quantity, Pageable pageable);
-
-    @Query("SELECT b FROM Book b WHERE b.price BETWEEN :minPrice AND :maxPrice")
-    Page<Book> findByPriceBetween(
-            @Param("minPrice") Double minPrice,
-            @Param("maxPrice") Double maxPrice,
-            Pageable pageable);
-
-    @Query("SELECT b FROM Book b WHERE b.price > :minPrice")
-    Page<Book> findExpensiveBooks(@Param("minPrice") Double minPrice, Pageable pageable);
-
-    @Query("SELECT b FROM Book b WHERE b.quantity <= :lowStockThreshold AND b.availabilityStatus = :status")
-    Page<Book> findLowStockBooks(
-            @Param("lowStockThreshold") Integer lowStockThreshold,
-            @Param("status") BookAvailabilityStatus status,
-            Pageable pageable);
-
-    @Query("SELECT COUNT(b) FROM Book b WHERE b.availabilityStatus = :status")
-    long countByAvailabilityStatus(@Param("status") BookAvailabilityStatus status);
-
-    @Query("SELECT SUM(b.quantity) FROM Book b WHERE b.availabilityStatus = :status")
-    Long sumQuantityByAvailabilityStatus(@Param("status") BookAvailabilityStatus status);
-
-    @Query("SELECT AVG(b.price) FROM Book b WHERE b.availabilityStatus = :status")
-    Double findAveragePriceByAvailabilityStatus(@Param("status") BookAvailabilityStatus status);
-
-    @Query("SELECT DISTINCT b.author FROM Book b WHERE b.availabilityStatus != :excludedStatus")
-    List<String> findDistinctAuthors(@Param("excludedStatus") BookAvailabilityStatus excludedStatus);
-
-    @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("SELECT b FROM Book b WHERE b.id IN :bookIds")
-    List<Book> findAllByIdForUpdate(@Param("bookIds") List<Long> bookIds);
-
-    // Обновление количества через @Modifying
-    @Query("UPDATE Book b SET b.quantity = b.quantity - :quantity WHERE b.id = :id AND b.quantity >= :quantity")
-    int decreaseQuantity(@Param("id") Long id, @Param("quantity") Integer quantity);
-
-    @Query("UPDATE Book b SET b.quantity = b.quantity + :quantity WHERE b.id = :id")
-    int increaseQuantity(@Param("id") Long id, @Param("quantity") Integer quantity);
-
-    @Query("SELECT CASE WHEN COUNT(b) > 0 THEN true ELSE false END FROM Book b WHERE b.id = :id AND b.quantity >= :quantity AND b.availabilityStatus = :status")
-    boolean existsByIdAndQuantityGreaterThanEqualAndAvailabilityStatus(
-            @Param("id") Long id,
-            @Param("quantity") Integer quantity,
-            @Param("status") BookAvailabilityStatus status);
-
-    @Query("SELECT b FROM Book b LEFT JOIN OrderItem oi ON b.id = oi.bookId " +
-            "WHERE b.availabilityStatus = :status " +
-            "GROUP BY b.id " +
-            "ORDER BY COUNT(oi.id) DESC")
-    Page<Book> findPopularBooks(
-            @Param("status") BookAvailabilityStatus status,
-            Pageable pageable);
-
-    Page<Book> findByTitleContainingIgnoreCaseOrAuthorContainingIgnoreCaseAndAvailabilityStatusNot(
-            String title,
-            String author,
-            BookAvailabilityStatus excludedStatus,
-            Pageable pageable
-    );
+    Page<Book> findByAvailabilityStatus(BookAvailabilityStatus status, Pageable pageable);
 
     Page<Book> findByAuthorContainingIgnoreCaseAndAvailabilityStatusNot(
-            String author,
-            BookAvailabilityStatus excludedStatus,
-            Pageable pageable
-    );
+            String author, BookAvailabilityStatus excludedStatus, Pageable pageable);
 
     Page<Book> findByAvailabilityStatusAndQuantityLessThanEqual(
-            BookAvailabilityStatus status,
-            int quantity,
-            Pageable pageable
-    );
+            BookAvailabilityStatus status, int quantity, Pageable pageable);
 
-    long countByAvailabilityStatusAndQuantity(
-            BookAvailabilityStatus status,
-            int quantity
-    );
+    Page<Book> findByAvailabilityStatusAndQuantityGreaterThan(
+            BookAvailabilityStatus status, int quantity, Pageable pageable);
 
-    long countByAvailabilityStatusAndQuantityLessThanEqual(
-            BookAvailabilityStatus status,
-            int quantity
-    );
+    long countByAvailabilityStatus(BookAvailabilityStatus status);
 
+    long countByAvailabilityStatusAndStockStatus(BookAvailabilityStatus availabilityStatus, StockStatus stockStatus);
+
+    long countByAvailabilityStatusAndQuantityLessThanEqual(BookAvailabilityStatus status, int quantity);
 }
+

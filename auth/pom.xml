@@ -22,7 +22,6 @@
         <mapstruct.version>1.5.5.Final</mapstruct.version>
         <redisson.version>3.51.0</redisson.version>
         <lombok.version>1.18.32</lombok.version>
-        <!-- ИСПРАВЛЕНО: Используем версию snakeyaml совместимую с Spring Boot 3.3.3 -->
         <snakeyaml.version>2.2</snakeyaml.version>
     </properties>
 

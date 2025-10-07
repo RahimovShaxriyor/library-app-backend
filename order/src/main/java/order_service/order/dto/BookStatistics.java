@@ -7,3 +7,4 @@ public record BookStatistics(
         long outOfStockBooks,
         long lowStockBooks
 ) {}
+

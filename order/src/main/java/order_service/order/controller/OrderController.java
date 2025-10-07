@@ -35,9 +35,7 @@ public class OrderController {
     public OrderResponseDto createOrder(
             @Valid @RequestBody CreateOrderRequestDto request,
             @Parameter(hidden = true) @AuthenticationPrincipal UserDetails currentUser) {
-
-        log.info("📦 Creating order for user: {}", currentUser.getUsername());
-        request.logOrderDetails();
+        log.info("Creating order for user: {}", currentUser.getUsername());
         return orderService.createOrder(request, currentUser);
     }
 
@@ -46,10 +44,8 @@ public class OrderController {
     @Operation(summary = "Get my order history", description = "Get paginated order history for current user")
     public Page<OrderResponseDto> getMyOrderHistory(
             @Parameter(hidden = true) @AuthenticationPrincipal UserDetails currentUser,
-            @Parameter(description = "Pagination parameters")
             @PageableDefault(size = 10, sort = "createdAt,desc") Pageable pageable) {
-
-        log.debug("📋 Fetching order history for user: {}", currentUser.getUsername());
+        log.debug("Fetching order history for user: {}", currentUser.getUsername());
         return orderService.getOrdersForUser(currentUser, pageable);
     }
 
@@ -59,8 +55,7 @@ public class OrderController {
     public OrderResponseDto getOrderById(
             @Parameter(description = "Order ID") @PathVariable Long id,
             @Parameter(hidden = true) @AuthenticationPrincipal UserDetails currentUser) {
-
-        log.debug("🔍 Fetching order {} for user: {}", id, currentUser.getUsername());
+        log.debug("Fetching order {} for user: {}", id, currentUser.getUsername());
         return orderService.getOrderDetails(id, currentUser);
     }
 
@@ -70,8 +65,7 @@ public class OrderController {
     public OrderResponseDto processPayment(
             @Parameter(description = "Order ID") @PathVariable Long id,
             @Parameter(hidden = true) @AuthenticationPrincipal UserDetails currentUser) {
-
-        log.info("💳 Processing payment for order {} by user: {}", id, currentUser.getUsername());
+        log.info("Processing payment for order {} by user: {}", id, currentUser.getUsername());
         return orderService.processPayment(id, currentUser);
     }
 
@@ -82,21 +76,17 @@ public class OrderController {
     public void cancelOrder(
             @Parameter(description = "Order ID") @PathVariable Long id,
             @Parameter(hidden = true) @AuthenticationPrincipal UserDetails currentUser) {
-
-        log.info("❌ Cancelling order {} by user: {}", id, currentUser.getUsername());
+        log.info("Cancelling order {} by user: {}", id, currentUser.getUsername());
         orderService.cancelOrder(id, currentUser);
     }
 
-    // ==================== ADMIN ENDPOINTS ====================
 
     @GetMapping
     @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Get all orders", description = "Get all orders (Admin only)")
     public Page<OrderResponseDto> getAllOrders(
-            @Parameter(description = "Pagination parameters")
             @PageableDefault(size = 20, sort = "createdAt,desc") Pageable pageable) {
-
-        log.debug("👨‍💼 Admin fetching all orders");
+        log.debug("Admin fetching all orders");
         return orderService.getAllOrders(pageable);
     }
 
@@ -104,10 +94,9 @@ public class OrderController {
     @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Get orders by status", description = "Get orders by status (Admin only)")
     public Page<OrderResponseDto> getOrdersByStatus(
-            @Parameter(description = "Order status") @PathVariable OrderStatus status,
-            @Parameter(description = "Pagination parameters") Pageable pageable) {
-
-        log.debug("👨‍💼 Admin fetching orders by status: {}", status);
+            @PathVariable OrderStatus status,
+            Pageable pageable) {
+        log.debug("Admin fetching orders by status: {}", status);
         return orderService.getOrdersByStatus(status, pageable);
     }
 
@@ -116,8 +105,7 @@ public class OrderController {
     @Operation(summary = "Ship order", description = "Mark order as shipped (Admin only)")
     public OrderResponseDto shipOrder(
             @Parameter(description = "Order ID") @PathVariable Long id) {
-
-        log.info("🚚 Shipping order: {}", id);
+        log.info("Shipping order: {}", id);
         return orderService.shipOrder(id);
     }
 
@@ -126,8 +114,8 @@ public class OrderController {
     @Operation(summary = "Deliver order", description = "Mark order as delivered (Admin only)")
     public OrderResponseDto deliverOrder(
             @Parameter(description = "Order ID") @PathVariable Long id) {
-
-        log.info("📮 Delivering order: {}", id);
+        log.info("Delivering order: {}", id);
         return orderService.deliverOrder(id);
     }
 }
+
