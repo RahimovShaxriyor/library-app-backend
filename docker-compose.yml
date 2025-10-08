@@ -1,5 +1,3 @@
-version: '3.9'
-
 services:
   registr-service:
     build: ./registr
@@ -20,6 +18,8 @@ services:
       - SPRING_PROFILES_ACTIVE=docker
     networks:
       - library-network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   auth-service:
     build: ./auth
@@ -32,6 +32,8 @@ services:
       - SPRING_PROFILES_ACTIVE=docker
     networks:
       - library-network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   order-service:
     build: ./order
@@ -44,6 +46,8 @@ services:
       - SPRING_PROFILES_ACTIVE=docker
     networks:
       - library-network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   payment-service:
     build: ./payment
@@ -56,6 +60,8 @@ services:
       - SPRING_PROFILES_ACTIVE=docker
     networks:
       - library-network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
 networks:
   library-network:
