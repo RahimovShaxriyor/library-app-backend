@@ -18,7 +18,9 @@ import java.util.Optional;
 public interface BookRepository extends JpaRepository<Book, Long> {
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    Optional<Book> findByIdForUpdate(Long id);
+    @Query("SELECT b FROM Book b WHERE b.id = :id")
+    Optional<Book> findByIdForUpdate(@Param("id") Long id);
+
 
     boolean existsByTitleAndAuthor(String title, String author);
 
