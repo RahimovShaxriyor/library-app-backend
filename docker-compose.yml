@@ -1,11 +1,16 @@
 services:
   registr-service:
     build: ./registr
-    container_name: registr-service
+    container_name: service-registr
     ports:
       - "8761:8761"
     networks:
       - library-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8761/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   gateway-service:
     build: ./gateway
@@ -13,13 +18,19 @@ services:
     ports:
       - "8080:8080"
     depends_on:
-      - registr-service
+      registr-service:
+        condition: service_healthy
     environment:
       - SPRING_PROFILES_ACTIVE=docker
     networks:
       - library-network
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   auth-service:
     build: ./auth
@@ -27,13 +38,19 @@ services:
     ports:
       - "8082:8082"
     depends_on:
-      - registr-service
+      registr-service:
+        condition: service_healthy
     environment:
       - SPRING_PROFILES_ACTIVE=docker
     networks:
       - library-network
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8082/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   order-service:
     build: ./order
@@ -41,13 +58,19 @@ services:
     ports:
       - "8081:8081"
     depends_on:
-      - registr-service
+      registr-service:
+        condition: service_healthy
     environment:
       - SPRING_PROFILES_ACTIVE=docker
     networks:
       - library-network
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   payment-service:
     build: ./payment
@@ -55,13 +78,19 @@ services:
     ports:
       - "9002:9002"
     depends_on:
-      - registr-service
+      registr-service:
+        condition: service_healthy
     environment:
       - SPRING_PROFILES_ACTIVE=docker
     networks:
       - library-network
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9002/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
 networks:
   library-network:
