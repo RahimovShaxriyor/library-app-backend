@@ -32,6 +32,11 @@ public class Order {
     )
     private Long id;
 
+    // ДОБАВЬТЕ ЭТО ПОЛЕ - оно решает проблему с missing column [version]
+    @Version
+    @Column(name = "version")
+    private Long version;
+
     @Column(name = "user_id", nullable = false, length = 100)
     private String userId;
 
@@ -75,28 +80,29 @@ public class Order {
     @Column(name = "order_number", unique = true, length = 20)
     private String orderNumber;
 
-//    public void addOrderItem(OrderItem item) {
-//        items.add(item);
-//        item.setOrder(this);
-//    }
-//
-//    public void removeOrderItem(OrderItem item) {
-//        items.remove(item);
-//        item.setOrder(null);
-//    }
-//
-//    public boolean canBeCancelled() {
-//        return status == OrderStatus.PENDING || status == OrderStatus.PAID;
-//    }
-//
-//    public boolean isCompleted() {
-//        return status == OrderStatus.DELIVERED || status == OrderStatus.CANCELLED;
-//    }
+    public void addOrderItem(OrderItem item) {
+        items.add(item);
+        item.setOrder(this);
+    }
+
+    public void removeOrderItem(OrderItem item) {
+        items.remove(item);
+        item.setOrder(null);
+    }
+
+    public boolean canBeCancelled() {
+        return status == OrderStatus.PENDING || status == OrderStatus.PAID;
+    }
+
+    public boolean isCompleted() {
+        return status == OrderStatus.DELIVERED || status == OrderStatus.CANCELLED;
+    }
 
     @Override
     public String toString() {
         return "Order{" +
                 "id=" + id +
+                ", version=" + version +
                 ", userId='" + userId + '\'' +
                 ", totalPrice=" + totalPrice +
                 ", status=" + status +

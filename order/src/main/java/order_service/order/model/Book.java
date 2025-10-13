@@ -18,7 +18,7 @@ import java.time.LocalDateTime;
 public class Book {
 
     @Id
-    @SequenceGenerator(name = "book_seq", sequenceName = "BOOK_SEQ", allocationSize = 1)
+    @SequenceGenerator(name = "book_seq", sequenceName = "BOOKS_SEQ", allocationSize = 50) // Изменено на BOOKS_SEQ и allocationSize = 50
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "book_seq")
     private Long id;
 
@@ -33,27 +33,40 @@ public class Book {
 
     private String season;
     private Integer pages;
+
+    @Column(nullable = false, precision = 19, scale = 2)
     private BigDecimal price;
+
+    @Column(nullable = false)
     private Integer quantity;
+
     private String genre;
     private String publisher;
     private String isbn;
+
+    @Column(name = "publication_year")
     private Integer publicationYear;
+
     private String language;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "stock_status")
     private StockStatus stockStatus;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "availability_status")
     private BookAvailabilityStatus availabilityStatus;
 
     @Version
+    @Column(name = "version")
     private Integer version;
 
     @CreationTimestamp
+    @Column(name = "created_at")
     private LocalDateTime createdAt;
 
     @UpdateTimestamp
+    @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
     @PrePersist
@@ -70,4 +83,3 @@ public class Book {
         return this.title;
     }
 }
-
