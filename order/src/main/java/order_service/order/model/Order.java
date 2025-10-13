@@ -75,9 +75,6 @@ public class Order {
     @Column(name = "order_number", unique = true, length = 20)
     private String orderNumber;
 
-    @Version
-    private Long version;
-
 //    public void addOrderItem(OrderItem item) {
 //        items.add(item);
 //        item.setOrder(this);
