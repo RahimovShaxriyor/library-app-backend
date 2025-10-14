@@ -18,7 +18,7 @@ import java.time.LocalDateTime;
 public class Book {
 
     @Id
-    @SequenceGenerator(name = "book_seq", sequenceName = "BOOKS_SEQ", allocationSize = 50) // Изменено на BOOKS_SEQ и allocationSize = 50
+    @SequenceGenerator(name = "book_seq", sequenceName = "BOOKS_SEQ", allocationSize = 1) // Изменено на BOOKS_SEQ и allocationSize = 50
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "book_seq")
     private Long id;
 

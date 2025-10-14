@@ -14,19 +14,23 @@ import org.springframework.data.redis.serializer.StringRedisSerializer;
 @Configuration
 public class RedisConfig {
 
-    @Value("${spring.data.redis.host:redis}") // Используем redis вместо localhost
+    @Value("${spring.data.redis.host:redis}")
     private String redisHost;
 
     @Value("${spring.data.redis.port:6379}")
     private int redisPort;
 
-    @Bean
+    @Bean(destroyMethod = "shutdown")
     public RedissonClient redissonClient() {
         Config config = new Config();
+        String redisAddress = "redis://" + redisHost + ":" + redisPort;
+        System.out.println("🔗 Connecting to Redis at " + redisAddress);
+
         config.useSingleServer()
-                .setAddress("redis://" + redisHost + ":" + redisPort)
-                .setConnectTimeout(10000) // увеличиваем таймаут
+                .setAddress(redisAddress)
+                .setConnectTimeout(10000)
                 .setTimeout(10000);
+
         return Redisson.create(config);
     }
 
