@@ -7,7 +7,7 @@ import java.util.Map;
 
 public interface PaymentService {
 
-    PaymentInitiationResponse initiatePayment(PaymentInitiationRequest request);
+    PaymentInitiationResponse initiatePayment(PaymentInitiationRequest request, String idempotencyKey);
 
     void handlePaymentCallback(String provider, Map<String, Object> callbackData);
 
@@ -19,6 +19,15 @@ public interface PaymentService {
 
     Map<String, Object> getPaymentHistory(Long orderId);
 
-    Map<String, Object> refundPayment(Long paymentId, String reason, String amountStr);
-}
+    Map<String, Object> refundPayment(Long paymentId, String reason, String amountStr, String idempotencyKey);
 
+    Map<String, Object> getHealthInfo();
+
+    Map<String, Object> getAvailableProviders();
+
+    boolean validateIdempotencyKey(String key, String operationType);
+
+    void cleanupExpiredIdempotencyKeys();
+
+    Map<String, Object> getPaymentMetrics();
+}

@@ -2,17 +2,14 @@ package com.example.paymentservice.controller;
 
 import com.example.paymentservice.dto.PaymentInitiationRequest;
 import com.example.paymentservice.dto.PaymentInitiationResponse;
-import com.example.paymentservice.dto.payme.PaymeRequest;
-import com.example.paymentservice.dto.payme.PaymeResponse;
-import com.example.paymentservice.service.PaymeMerchantService;
 import com.example.paymentservice.service.PaymentService;
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -30,7 +27,6 @@ import java.util.Map;
 public class PaymentController {
 
     private final PaymentService paymentService;
-    private final PaymeMerchantService paymeMerchantService;
 
     @PostMapping("/initiate")
     @Operation(
@@ -50,83 +46,36 @@ public class PaymentController {
             @ApiResponse(
                     responseCode = "404",
                     description = "Заказ не найден"
+            ),
+            @ApiResponse(
+                    responseCode = "409",
+                    description = "Дублирующий запрос (idempotency key violation)"
             )
     })
+    @RateLimiter(name = "paymentInitiation")
     public ResponseEntity<PaymentInitiationResponse> initiatePayment(
             @Parameter(description = "Данные для инициации платежа", required = true)
-            @Valid @RequestBody PaymentInitiationRequest request) {
+            @Valid @RequestBody PaymentInitiationRequest request,
 
-        log.info("Initiating payment for order: {}, amount: {}", request.getOrderId(), request.getAmount());
-        PaymentInitiationResponse response = paymentService.initiatePayment(request);
-        return ResponseEntity.ok(response);
-    }
+            @Parameter(description = "Idempotency Key для предотвращения дублирования",
+                    example = "unique-key-12345")
+            @RequestHeader(value = "X-Idempotency-Key", required = false) String idempotencyKey) {
 
-    @PostMapping("/callback/{provider}")
-    @Operation(
-            summary = "Обработка callback от платежных провайдеров",
-            description = "Endpoint для получения уведомлений от платежных систем"
-    )
-    @ApiResponses({
-            @ApiResponse(
-                    responseCode = "200",
-                    description = "Callback успешно обработан"
-            ),
-            @ApiResponse(
-                    responseCode = "400",
-                    description = "Неверный формат callback данных"
-            )
-    })
-    public ResponseEntity<Void> handleCallback(
-            @Parameter(description = "Платежный провайдер", example = "payme", required = true)
-            @PathVariable String provider,
+        log.info("Initiating payment for order: {}, amount: {}, idempotencyKey: {}",
+                request.getOrderId(), request.getAmount(), idempotencyKey);
 
-            @Parameter(description = "Данные callback от платежной системы", required = true)
-            @RequestBody Map<String, Object> callbackData) {
+        // Валидация idempotency key
+        if (idempotencyKey != null &&
+                !paymentService.validateIdempotencyKey(idempotencyKey, "PAYMENT_INITIATION")) {
+            log.warn("Duplicate payment initiation request with idempotency key: {}", idempotencyKey);
+            return ResponseEntity.status(409).build();
+        }
 
-        log.info("Received callback from provider: {}, data: {}", provider, callbackData);
-        paymentService.handlePaymentCallback(provider, callbackData);
-        return ResponseEntity.ok().build();
-    }
+        PaymentInitiationResponse response = paymentService.initiatePayment(request, idempotencyKey);
 
-    @PostMapping("/payme")
-    @Operation(
-            summary = "Обработка запросов Payme",
-            description = "Основной endpoint для интеграции с платежной системой Payme",
-            security = @SecurityRequirement(name = "Authorization")
-    )
-    @ApiResponses({
-            @ApiResponse(
-                    responseCode = "200",
-                    description = "Запрос успешно обработан",
-                    content = @Content(schema = @Schema(implementation = PaymeResponse.class))
-            ),
-            @ApiResponse(
-                    responseCode = "401",
-                    description = "Неавторизованный доступ"
-            ),
-            @ApiResponse(
-                    responseCode = "500",
-                    description = "Внутренняя ошибка сервера"
-            )
-    })
-    public ResponseEntity<PaymeResponse> handlePaymeRequest(
-            @Parameter(
-                    description = "Authorization header для аутентификации",
-                    example = "Basic dGVzdDp0ZXN0",
-                    required = false
-            )
-            @RequestHeader(value = "Authorization", required = false) String authorization,
+        log.info("Payment initiated successfully: paymentId: {}, paymentUrl: {}",
+                response.getPaymentId(), response.getPaymentUrl());
 
-            @Parameter(
-                    description = "Запрос от платежной системы Payme",
-                    required = true,
-                    schema = @Schema(implementation = PaymeRequest.class)
-            )
-            @RequestBody PaymeRequest request) {
-
-        log.info("Received Payme request: method={}, id={}", request.getMethod(), request.getId());
-        PaymeResponse response = paymeMerchantService.handleRequest(authorization, request);
-        log.info("Sending Payme response for method: {}, id: {}", request.getMethod(), request.getId());
         return ResponseEntity.ok(response);
     }
 
@@ -222,13 +171,10 @@ public class PaymentController {
             responseCode = "200",
             description = "Сервис работает корректно"
     )
-    public ResponseEntity<Map<String, String>> healthCheck() {
+    public ResponseEntity<Map<String, Object>> healthCheck() {
         log.debug("Health check requested");
-        return ResponseEntity.ok(Map.of(
-                "status", "UP",
-                "service", "payment-service",
-                "timestamp", java.time.LocalDateTime.now().toString()
-        ));
+        Map<String, Object> healthInfo = paymentService.getHealthInfo();
+        return ResponseEntity.ok(healthInfo);
     }
 
     @GetMapping("/order/{orderId}/history")
@@ -283,15 +229,61 @@ public class PaymentController {
                     required = true,
                     schema = @Schema(example = "{\"reason\": \"Product return\", \"amount\": \"100.00\"}")
             )
-            @RequestBody Map<String, String> refundRequest) {
+            @RequestBody Map<String, String> refundRequest,
+
+            @Parameter(description = "Idempotency Key для предотвращения дублирования")
+            @RequestHeader(value = "X-Idempotency-Key", required = false) String idempotencyKey) {
 
         String reason = refundRequest.get("reason");
         String amountStr = refundRequest.get("amount");
 
-        log.info("Processing refund for payment: {}, reason: {}, amount: {}",
-                paymentId, reason, amountStr);
+        log.info("Processing refund for payment: {}, reason: {}, amount: {}, idempotencyKey: {}",
+                paymentId, reason, amountStr, idempotencyKey);
 
-        Map<String, Object> result = paymentService.refundPayment(paymentId, reason, amountStr);
+        // Валидация idempotency key
+        if (idempotencyKey != null &&
+                !paymentService.validateIdempotencyKey(idempotencyKey, "PAYMENT_REFUND")) {
+            log.warn("Duplicate refund request with idempotency key: {}", idempotencyKey);
+            return ResponseEntity.status(409).build();
+        }
+
+        Map<String, Object> result = paymentService.refundPayment(paymentId, reason, amountStr, idempotencyKey);
         return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/providers")
+    @Operation(
+            summary = "Получение списка доступных платежных провайдеров",
+            description = "Возвращает список поддерживаемых платежных систем и их параметры"
+    )
+    @ApiResponse(responseCode = "200", description = "Список провайдеров получен")
+    public ResponseEntity<Map<String, Object>> getAvailableProviders() {
+        log.info("Getting available payment providers");
+        Map<String, Object> providers = paymentService.getAvailableProviders();
+        return ResponseEntity.ok(providers);
+    }
+
+    @GetMapping("/metrics")
+    @Operation(
+            summary = "Метрики платежного сервиса",
+            description = "Получение метрик и статистики платежного сервиса"
+    )
+    @ApiResponse(responseCode = "200", description = "Метрики успешно получены")
+    public ResponseEntity<Map<String, Object>> getPaymentMetrics() {
+        log.info("Getting payment metrics");
+        Map<String, Object> metrics = paymentService.getPaymentMetrics();
+        return ResponseEntity.ok(metrics);
+    }
+
+    @PostMapping("/cleanup/idempotency-keys")
+    @Operation(
+            summary = "Очистка просроченных Idempotency Keys",
+            description = "Ручной запуск очистки просроченных idempotency keys"
+    )
+    @ApiResponse(responseCode = "200", description = "Очистка выполнена")
+    public ResponseEntity<Map<String, Object>> cleanupIdempotencyKeys() {
+        log.info("Manual cleanup of expired idempotency keys requested");
+        paymentService.cleanupExpiredIdempotencyKeys();
+        return ResponseEntity.ok(Map.of("status", "cleanup_completed"));
     }
 }

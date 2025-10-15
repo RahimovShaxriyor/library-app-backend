@@ -46,7 +46,6 @@ public class PaymentSuccessEvent implements Serializable {
         this.createdAt = LocalDateTime.now();
     }
 
-    // Статический фабричный метод для удобства создания
     public static PaymentSuccessEvent of(Long orderId, Long paymentId) {
         return new PaymentSuccessEvent(paymentId, orderId);
     }
