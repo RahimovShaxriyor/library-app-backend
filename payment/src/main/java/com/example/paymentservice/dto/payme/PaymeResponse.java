@@ -131,4 +131,54 @@ public class PaymeResponse {
     public void setId(String id) {
         this.id = id;
     }
+
+    // Вспомогательные методы для безопасного доступа к ошибке
+    public Integer getErrorCode() {
+        if (error != null && error.containsKey("code")) {
+            Object code = error.get("code");
+            if (code instanceof Integer) {
+                return (Integer) code;
+            } else if (code instanceof String) {
+                try {
+                    return Integer.parseInt((String) code);
+                } catch (NumberFormatException e) {
+                    return null;
+                }
+            }
+        }
+        return null;
+    }
+
+    public String getErrorMessage() {
+        if (error != null && error.containsKey("message")) {
+            Object message = error.get("message");
+            return message != null ? message.toString() : null;
+        }
+        return null;
+    }
+
+    public Object getErrorData() {
+        return error != null ? error.get("data") : null;
+    }
+
+    public boolean hasError() {
+        return error != null;
+    }
+
+    public boolean isSuccess() {
+        return result != null && error == null;
+    }
+
+    // Статические вспомогательные методы
+    public static boolean hasError(PaymeResponse response) {
+        return response != null && response.hasError();
+    }
+
+    public static Integer getErrorCode(PaymeResponse response) {
+        return response != null ? response.getErrorCode() : null;
+    }
+
+    public static String getErrorMessage(PaymeResponse response) {
+        return response != null ? response.getErrorMessage() : null;
+    }
 }

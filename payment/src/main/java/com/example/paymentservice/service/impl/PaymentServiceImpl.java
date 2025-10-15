@@ -333,7 +333,14 @@ public class PaymentServiceImpl implements PaymentService {
         BigDecimal weekVolume = paymentRepository.sumAmountByCreatedAtAfter(weekAgo)
                 .orElse(BigDecimal.ZERO);
 
-        Map<PaymentStatus, Long> statusCounts = (Map<PaymentStatus, Long>) paymentRepository.countByStatusGroup();
+        // ИСПРАВЛЕНО: Логика подсчета перенесена внутрь метода
+        Map<PaymentStatus, Long> statusCounts = paymentRepository.countByStatusGroup()
+                .stream()
+                .collect(Collectors.toMap(
+                        arr -> (PaymentStatus) arr[0],
+                        arr -> (Long) arr[1]
+                ));
+
 
         return Map.of(
                 "timeframe", Map.of(
@@ -345,14 +352,6 @@ public class PaymentServiceImpl implements PaymentService {
                 "timestamp", LocalDateTime.now().toString()
         );
     }
-
-    Map<PaymentStatus, Long> statusCounts = paymentRepository.countByStatusGroup()
-            .stream()
-            .collect(Collectors.toMap(
-                    arr -> (PaymentStatus) arr[0],
-                    arr -> (Long) arr[1]
-            ));
-
 
     private String generatePaymentUrl(Payment payment, String provider) {
         return switch (PaymentProvider.valueOf(provider.toUpperCase())) {
@@ -456,3 +455,4 @@ public class PaymentServiceImpl implements PaymentService {
         public LocalDateTime getCreatedAt() { return createdAt; }
     }
 }
+

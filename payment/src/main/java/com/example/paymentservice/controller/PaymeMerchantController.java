@@ -99,7 +99,7 @@ public class PaymeMerchantController {
 
         String errorCode = "none";
         if (response.getError() != null) {
-            errorCode = String.valueOf(response.getError().getCode());
+            errorCode = String.valueOf(response.getError());
         }
 
         log.info("Sending Payme response [{}]: id={}, result={}, error={}",

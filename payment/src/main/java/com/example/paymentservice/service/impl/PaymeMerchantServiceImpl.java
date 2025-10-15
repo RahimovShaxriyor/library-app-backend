@@ -37,12 +37,334 @@ public class PaymeMerchantServiceImpl implements PaymeMerchantService {
     @Value("${payme.allowed.ips:}")
     private String allowedIps;
 
-    // In-memory storage for request audit (in production use Redis)
     private final Map<String, AuditRecord> requestAudit = new HashMap<>();
 
-    // ... остальные методы остаются без изменений ...
+    @Override
+    @Transactional
+    public PaymeResponse handleRequest(String authorization, PaymeRequest request, String clientIp, String requestId) {
+        log.info("Processing Payme request [{}] from {}: method={}, id={}",
+                requestId, clientIp, request.getMethod(), request.getId());
 
-    // РЕАЛИЗАЦИЯ МЕТОДОВ ОБРАБОТКИ PAYME ЗАПРОСОВ
+        if (!validateIpAddress(clientIp)) {
+            log.warn("Blocked Payme request from unauthorized IP: {}", clientIp);
+            auditRequest(requestId, request, clientIp, "INCOMING", "BLOCKED_IP");
+            return PaymeResponse.error(request.getId(), PaymeResponseMessage.INVALID_AUTHORIZATION);
+        }
+
+        if (!verifyMerchantCredentials(authorization)) {
+            log.warn("Invalid authorization header from IP: {}", clientIp);
+            auditRequest(requestId, request, clientIp, "INCOMING", "INVALID_AUTH");
+            return PaymeResponse.error(request.getId(), PaymeResponseMessage.INVALID_AUTHORIZATION);
+        }
+
+        auditRequest(requestId, request, clientIp, "INCOMING", "PROCESSING");
+
+        try {
+            PaymeResponse response = switch (request.getMethod()) {
+                case "CheckPerformTransaction" -> checkPerformTransaction(request);
+                case "CreateTransaction" -> createTransaction(request);
+                case "PerformTransaction" -> performTransaction(request);
+                case "CancelTransaction" -> cancelTransaction(request);
+                case "CheckTransaction" -> checkTransaction(request);
+                case "GetStatement" -> getStatement(request);
+                default -> PaymeResponse.error(request.getId(), PaymeResponseMessage.METHOD_NOT_FOUND);
+            };
+
+            auditResponse(requestId, response, "OUTGOING", "COMPLETED");
+            log.info("Payme request [{}] completed successfully", requestId);
+            return response;
+
+        } catch (Exception e) {
+            log.error("Error processing Payme request [{}] method: {}", requestId, request.getMethod(), e);
+            auditResponse(requestId, null, "OUTGOING", "ERROR");
+            return PaymeResponse.error(request.getId(), PaymeResponseMessage.SYSTEM_ERROR);
+        }
+    }
+
+    @Override
+    public void auditRequest(String requestId, PaymeRequest request, String clientIp, String direction) {
+        auditRequest(requestId, request, clientIp, direction, "RECEIVED");
+    }
+
+    @Override
+    public void auditResponse(String requestId, PaymeResponse response, String direction) {
+        auditResponse(requestId, response, direction, "SENT");
+    }
+
+    public void auditRequest(String requestId, PaymeRequest request, String clientIp, String direction, String status) {
+        AuditRecord record = new AuditRecord(requestId, request.getMethod(), clientIp, direction, status);
+        record.setRequestPayload(request.toString());
+        requestAudit.put(requestId, record);
+        log.debug("Audit request [{}]: {} - {}", requestId, direction, status);
+    }
+
+    public void auditResponse(String requestId, PaymeResponse response, String direction, String status) {
+        AuditRecord record = requestAudit.get(requestId);
+        if (record != null) {
+            record.setResponsePayload(response != null ? response.toString() : "ERROR");
+            record.setStatus(status);
+            record.setCompletedAt(LocalDateTime.now());
+            log.debug("Audit response [{}]: {} - {}", requestId, direction, status);
+        }
+    }
+
+    @Override
+    public Map<String, Object> getHealthInfo() {
+        long totalRequests = requestAudit.size();
+        long successfulRequests = requestAudit.values().stream()
+                .filter(r -> "COMPLETED".equals(r.getStatus()))
+                .count();
+
+        long pendingPayments = paymentRepository.countByStatus(PaymentStatus.PENDING);
+        long successfulPayments = paymentRepository.countByStatus(PaymentStatus.SUCCESS);
+
+        return Map.of(
+                "status", "UP",
+                "service", "payme-merchant-service",
+                "timestamp", LocalDateTime.now().toString(),
+                "requests", Map.of(
+                        "total", totalRequests,
+                        "successful", successfulRequests,
+                        "pending", requestAudit.values().stream()
+                                .filter(r -> "PROCESSING".equals(r.getStatus()))
+                                .count()
+                ),
+                "payments", Map.of(
+                        "pending", pendingPayments,
+                        "successful", successfulPayments
+                ),
+                "features", Map.of(
+                        "ipValidation", true,
+                        "requestAudit", true,
+                        "retryMechanism", true
+                )
+        );
+    }
+
+    @Override
+    public Map<String, Object> getStatistics(int days) {
+        LocalDateTime startDate = LocalDateTime.now().minusDays(days);
+
+        Long totalTransactions = paymentRepository.countByCreatedAtAfter(startDate);
+        BigDecimal totalVolume = paymentRepository.sumAmountByCreatedAtAfter(startDate)
+                .orElse(BigDecimal.ZERO);
+
+        Long successfulTransactions = paymentRepository.countByCreatedAtAfterAndStatus(
+                startDate, PaymentStatus.SUCCESS);
+
+        List<Map<String, Object>> hourlyStats = paymentRepository.getHourlyStats(startDate);
+
+        return Map.of(
+                "period", Map.of("days", days, "startDate", startDate.toString()),
+                "transactions", Map.of(
+                        "total", totalTransactions,
+                        "successful", successfulTransactions,
+                        "successRate", totalTransactions > 0 ?
+                                (double) successfulTransactions / totalTransactions * 100 : 0
+                ),
+                "volume", Map.of(
+                        "total", totalVolume,
+                        "currency", "UZS"
+                ),
+                "hourlyDistribution", hourlyStats,
+                "audit", Map.of(
+                        "totalRequests", requestAudit.size(),
+                        "recentRequests", requestAudit.values().stream()
+                                .filter(r -> r.getCreatedAt().isAfter(startDate))
+                                .count()
+                )
+        );
+    }
+
+    @Override
+    public boolean validateIpAddress(String clientIp) {
+        if (allowedIps == null || allowedIps.isEmpty()) {
+            log.warn("No allowed IPs configured, allowing all requests");
+            return true;
+        }
+
+        String[] allowedIpRanges = allowedIps.split(",");
+        for (String ipRange : allowedIpRanges) {
+            if (isIpInRange(clientIp, ipRange.trim())) {
+                return true;
+            }
+        }
+
+        log.warn("IP address not in allowed range: {}", clientIp);
+        return false;
+    }
+
+    @Override
+    public boolean verifyMerchantCredentials(String authorizationHeader) {
+        return isValidAuthorization(authorizationHeader);
+    }
+
+    @Override
+    @Scheduled(fixedRate = 300000)
+    public void cleanupExpiredTransactions() {
+        log.debug("Cleaning up expired Payme transactions");
+        LocalDateTime now = LocalDateTime.now();
+
+        List<Payment> expiredPayments = paymentRepository.findExpiredPayments(now);
+        for (Payment payment : expiredPayments) {
+            payment.setStatus(PaymentStatus.CANCELLED);
+            payment.setCancellationReason("Expired");
+            payment.setCancelledAt(now);
+            paymentRepository.save(payment);
+            log.info("Expired payment cancelled: {}", payment.getId());
+        }
+
+        LocalDateTime auditThreshold = now.minusHours(24);
+        int initialSize = requestAudit.size();
+        requestAudit.entrySet().removeIf(entry ->
+                entry.getValue().getCreatedAt().isBefore(auditThreshold)
+        );
+
+        log.info("Cleanup completed: {} expired payments, {} old audit records",
+                expiredPayments.size(), initialSize - requestAudit.size());
+    }
+
+    @Override
+    @Transactional
+    public Map<String, Object> retryFailedTransaction(String transactionId) {
+        log.info("Retrying failed Payme transaction: {}", transactionId);
+
+        Optional<Payment> paymentOpt = paymentRepository.findByProviderTransactionId(transactionId);
+        if (paymentOpt.isEmpty()) {
+            return Map.of("success", false, "error", "Transaction not found");
+        }
+
+        Payment payment = paymentOpt.get();
+        if (payment.getStatus() != PaymentStatus.FAILED) {
+            return Map.of("success", false, "error", "Transaction is not in failed state");
+        }
+
+        if (!payment.shouldRetry()) {
+            return Map.of("success", false, "error", "Max retry attempts reached");
+        }
+
+        payment.setStatus(PaymentStatus.PENDING);
+        payment.setNextRetryAt(null);
+        paymentRepository.save(payment);
+
+        log.info("Transaction {} marked for retry", transactionId);
+        return Map.of(
+                "success", true,
+                "transactionId", transactionId,
+                "attempt", payment.getAttemptCount() + 1,
+                "status", "PENDING"
+        );
+    }
+
+    @Override
+    public Map<String, Object> getTransactionDetails(String transactionId) {
+        Optional<Payment> paymentOpt = paymentRepository.findByProviderTransactionId(transactionId);
+        if (paymentOpt.isEmpty()) {
+            return Map.of("found", false, "error", "Transaction not found");
+        }
+
+        Payment payment = paymentOpt.get();
+        return Map.of(
+                "found", true,
+                "transactionId", transactionId,
+                "orderId", payment.getOrderId(),
+                "status", payment.getStatus().toString(),
+                "amount", payment.getAmount(),
+                "currency", payment.getCurrency(),
+                "createdAt", payment.getCreatedAt(),
+                "updatedAt", payment.getUpdatedAt(),
+                "provider", payment.getProvider().toString()
+        );
+    }
+
+    @Override
+    public Map<String, Object> getTransactionsByOrder(Long orderId) {
+        List<Payment> payments = paymentRepository.findAllByOrderId(orderId, null);
+
+        List<Map<String, Object>> transactionList = new ArrayList<>();
+        for (Payment payment : payments) {
+            transactionList.add(Map.of(
+                    "paymentId", payment.getId(),
+                    "transactionId", payment.getProviderTransactionId(),
+                    "status", payment.getStatus().toString(),
+                    "amount", payment.getAmount(),
+                    "provider", payment.getProvider().toString(),
+                    "createdAt", payment.getCreatedAt()
+            ));
+        }
+
+        return Map.of(
+                "orderId", orderId,
+                "totalTransactions", transactionList.size(),
+                "transactions", transactionList
+        );
+    }
+
+    @Override
+    public boolean isServiceAvailable() {
+        try {
+            Map<String, Object> healthInfo = getHealthInfo();
+            return "UP".equals(healthInfo.get("status"));
+        } catch (Exception e) {
+            log.error("Service availability check failed: {}", e.getMessage());
+            return false;
+        }
+    }
+
+    @Override
+    public Map<String, Object> getPerformanceMetrics() {
+        LocalDateTime lastHour = LocalDateTime.now().minusHours(1);
+
+        Long requestsLastHour = requestAudit.values().stream()
+                .filter(r -> r.getCreatedAt().isAfter(lastHour))
+                .count();
+
+        Long successfulRequestsLastHour = requestAudit.values().stream()
+                .filter(r -> r.getCreatedAt().isAfter(lastHour) && "COMPLETED".equals(r.getStatus()))
+                .count();
+
+        return Map.of(
+                "timeframe", "last_hour",
+                "requests", Map.of(
+                        "total", requestsLastHour,
+                        "successful", successfulRequestsLastHour,
+                        "successRate", requestsLastHour > 0 ?
+                                (double) successfulRequestsLastHour / requestsLastHour * 100 : 0
+                ),
+                "cache", Map.of(
+                        "auditRecords", requestAudit.size()
+                ),
+                "timestamp", LocalDateTime.now().toString()
+        );
+    }
+
+    @Override
+    public Map<String, Object> forceCancelTransaction(String transactionId, String reason) {
+        log.info("Force cancelling Payme transaction: {}, reason: {}", transactionId, reason);
+
+        Optional<Payment> paymentOpt = paymentRepository.findByProviderTransactionId(transactionId);
+        if (paymentOpt.isEmpty()) {
+            return Map.of("success", false, "error", "Transaction not found");
+        }
+
+        Payment payment = paymentOpt.get();
+        if (payment.getStatus() != PaymentStatus.PENDING) {
+            return Map.of("success", false, "error", "Can only force cancel PENDING transactions");
+        }
+
+        payment.setStatus(PaymentStatus.CANCELLED);
+        payment.setCancellationReason(reason);
+        payment.setCancelledAt(LocalDateTime.now());
+        paymentRepository.save(payment);
+
+        log.info("Transaction {} force cancelled", transactionId);
+        return Map.of(
+                "success", true,
+                "transactionId", transactionId,
+                "status", "CANCELLED",
+                "reason", reason
+        );
+    }
 
     private PaymeResponse checkPerformTransaction(PaymeRequest request) {
         try {
@@ -70,7 +392,6 @@ public class PaymeMerchantServiceImpl implements PaymeMerchantService {
                 return PaymeResponse.error(request.getId(), PaymeResponseMessage.CANNOT_PERFORM_OPERATION);
             }
 
-            // Проверяем существование заказа через OrderService
             Boolean orderExists = orderServiceClient.checkOrderExists(orderId).block();
             if (orderExists == null || !orderExists) {
                 log.warn("CheckPerformTransaction failed: Order not found in order service for orderId: {}", orderId);
@@ -107,7 +428,6 @@ public class PaymeMerchantServiceImpl implements PaymeMerchantService {
                 return PaymeResponse.error(request.getId(), PaymeResponseMessage.CANNOT_PERFORM_OPERATION);
             }
 
-            // Проверяем, не существует ли уже транзакция с таким providerTransactionId
             if (payment.getProviderTransactionId() != null) {
                 log.warn("CreateTransaction failed: Transaction already exists for orderId: {}", orderId);
                 return PaymeResponse.error(request.getId(), PaymeResponseMessage.TRANSACTION_ALREADY_EXISTS);
@@ -163,7 +483,6 @@ public class PaymeMerchantServiceImpl implements PaymeMerchantService {
             payment.setStatus(PaymentStatus.SUCCESS);
             Payment savedPayment = paymentRepository.save(payment);
 
-            // Отправляем событие об успешном платеже
             PaymentSuccessEvent event = new PaymentSuccessEvent(savedPayment.getOrderId(), savedPayment.getId());
             rabbitTemplate.convertAndSend(
                     RabbitMQConfig.EXCHANGE_NAME,
@@ -218,7 +537,6 @@ public class PaymeMerchantServiceImpl implements PaymeMerchantService {
             payment.setStatus(PaymentStatus.CANCELLED);
             Payment savedPayment = paymentRepository.save(payment);
 
-            // Отправляем событие об отмене платежа
             rabbitTemplate.convertAndSend(
                     RabbitMQConfig.EXCHANGE_NAME,
                     RabbitMQConfig.PAYMENT_CANCELLED_ROUTING_KEY,
@@ -281,14 +599,11 @@ public class PaymeMerchantServiceImpl implements PaymeMerchantService {
             Long from = request.getParams().getFrom();
             Long to = request.getParams().getTo();
 
-            // Конвертируем timestamp в LocalDateTime
             LocalDateTime fromDate = LocalDateTime.ofEpochSecond(from / 1000, 0, java.time.ZoneOffset.UTC);
             LocalDateTime toDate = LocalDateTime.ofEpochSecond(to / 1000, 0, java.time.ZoneOffset.UTC);
 
-            // Получаем транзакции за период
             List<Payment> payments = paymentRepository.findByCreatedAtBetween(fromDate, toDate, null).getContent();
 
-            // Формируем список транзакций для ответа
             List<Map<String, Object>> transactions = new ArrayList<>();
             for (Payment payment : payments) {
                 if (payment.getProviderTransactionId() != null && payment.getStatus() == PaymentStatus.SUCCESS) {
@@ -310,7 +625,7 @@ public class PaymeMerchantServiceImpl implements PaymeMerchantService {
                             payment.getCompletedAt().toEpochSecond(java.time.ZoneOffset.UTC) * 1000 : 0);
                     transaction.put("cancel_time", 0);
                     transaction.put("transaction", payment.getId().toString());
-                    transaction.put("state", 2); // SUCCESS
+                    transaction.put("state", 2);
                     transaction.put("reason", null);
 
                     transactions.add(transaction);
@@ -326,5 +641,60 @@ public class PaymeMerchantServiceImpl implements PaymeMerchantService {
         }
     }
 
-    // ... остальные методы (isValidAuthorization, isIpInRange, AuditRecord) остаются без изменений ...
+    private boolean isValidAuthorization(String authorization) {
+        if (authorization == null || !authorization.startsWith("Basic ")) {
+            return false;
+        }
+        try {
+            String base64Credentials = authorization.substring("Basic ".length()).trim();
+            byte[] credDecoded = Base64.getDecoder().decode(base64Credentials);
+            String credentials = new String(credDecoded);
+            final String[] values = credentials.split(":", 2);
+            String username = values[0];
+            String password = values[1];
+            return "Paycom".equals(username) && Objects.equals(this.merchantKey, password);
+        } catch (Exception e) {
+            log.error("Error decoding authorization header", e);
+            return false;
+        }
+    }
+
+    private boolean isIpInRange(String ip, String range) {
+        return ip.equals(range) || range.contains(ip);
+    }
+
+    private static class AuditRecord {
+        private final String requestId;
+        private final String method;
+        private final String clientIp;
+        private final String direction;
+        private String status;
+        private String requestPayload;
+        private String responsePayload;
+        private final LocalDateTime createdAt;
+        private LocalDateTime completedAt;
+
+        public AuditRecord(String requestId, String method, String clientIp, String direction, String status) {
+            this.requestId = requestId;
+            this.method = method;
+            this.clientIp = clientIp;
+            this.direction = direction;
+            this.status = status;
+            this.createdAt = LocalDateTime.now();
+        }
+
+        public String getRequestId() { return requestId; }
+        public String getMethod() { return method; }
+        public String getClientIp() { return clientIp; }
+        public String getDirection() { return direction; }
+        public String getStatus() { return status; }
+        public void setStatus(String status) { this.status = status; }
+        public String getRequestPayload() { return requestPayload; }
+        public void setRequestPayload(String requestPayload) { this.requestPayload = requestPayload; }
+        public String getResponsePayload() { return responsePayload; }
+        public void setResponsePayload(String responsePayload) { this.responsePayload = responsePayload; }
+        public LocalDateTime getCreatedAt() { return createdAt; }
+        public LocalDateTime getCompletedAt() { return completedAt; }
+        public void setCompletedAt(LocalDateTime completedAt) { this.completedAt = completedAt; }
+    }
 }
