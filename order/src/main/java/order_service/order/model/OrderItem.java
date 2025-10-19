@@ -16,7 +16,7 @@ public class OrderItem {
     @SequenceGenerator(
             name = "order_item_seq",
             sequenceName = "ORDER_ITEM_SEQ",
-            allocationSize = 1
+            allocationSize = 50
     )
     @GeneratedValue(
             strategy = GenerationType.SEQUENCE,

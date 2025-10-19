@@ -22,24 +22,17 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                // 1. Отключаем CSRF-защиту. Это главная причина ошибки 403 Forbidden.
                 .csrf(AbstractHttpConfigurer::disable)
-
-                // 2. Настраиваем правила авторизации.
                 .authorizeHttpRequests(req ->
                         req.requestMatchers(
-                                        // УЛУЧШЕНИЕ: Явно указываем ТОЛЬКО эндпоинты, которые должны быть публичными.
-                                        // Это более безопасно, чем разрешать все подряд по маске "/api/auth/**".
-                                        "/api/auth/register", // Регистрация
-                                        "/api/auth/login",    // Вход в систему
-
-                                        // Документация API также остается публичной.
+                                        "/api/auth/register",
+                                        "/api/auth/login",
                                         "/swagger-ui/**",
                                         "/v3/api-docs/**"
                                 )
-                                .permitAll()              // Разрешаем доступ к ним для всех.
-                                .anyRequest()             // Все остальные запросы...
-                                .authenticated()          // ...требуют аутентификации.
+                                .permitAll()
+                                .anyRequest()
+                                .authenticated()
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authenticationProvider(authenticationProvider)

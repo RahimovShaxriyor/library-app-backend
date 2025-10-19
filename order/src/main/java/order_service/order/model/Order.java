@@ -24,7 +24,7 @@ public class Order {
     @SequenceGenerator(
             name = "order_seq",
             sequenceName = "ORDER_SEQ",
-            allocationSize = 1
+            allocationSize = 50
     )
     @GeneratedValue(
             strategy = GenerationType.SEQUENCE,
@@ -32,10 +32,6 @@ public class Order {
     )
     private Long id;
 
-
-
-
-    // ДОБАВЬТЕ ЭТО ПОЛЕ - оно решает проблему с missing column [version]
     @Version
     @Column(name = "version")
     private Long version;
