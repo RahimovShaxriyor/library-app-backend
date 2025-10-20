@@ -21,7 +21,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
 
-    // private final UserDetailsService userDetailsService; // <-- ЭТА СТРОКА УДАЛЕНА. ОНА БЫЛА ПРИЧИНОЙ ОШИБКИ.
 
     @Override
     protected void doFilterInternal(

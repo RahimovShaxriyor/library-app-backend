@@ -1,7 +1,6 @@
 version: '3.8'
 
 services:
-  # База данных Oracle
   oracle-db:
     container_name: oracle-db
     image: container-registry.oracle.com/database/free:latest
@@ -25,19 +24,20 @@ services:
   redis:
     image: redis:latest
     container_name: redis
+    restart: unless-stopped
     ports:
-      - "6380:6379"
+      - "6379:6379"
+    command: ["redis-server", "--bind", "0.0.0.0"]
     volumes:
       - redis_data:/data
     networks:
       - library-network
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "-h", "localhost", "ping"]
       interval: 10s
       timeout: 5s
       retries: 3
 
-  # Message Broker RabbitMQ
   rabbitmq:
     image: rabbitmq:3.13-management
     container_name: rabbitmq
@@ -61,7 +61,6 @@ services:
       retries: 5
       start_period: 30s
 
-  # Service Discovery - Eureka Server
   registr-service:
     build: ./registr
     container_name: service-registr
@@ -85,7 +84,6 @@ services:
       retries: 5
       start_period: 40s
 
-  # Authentication Service
   auth-service:
     build: ./auth
     container_name: auth-service
@@ -108,6 +106,7 @@ services:
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://registr-service:8761/eureka/
       - SPRING_RABBITMQ_HOST=rabbitmq
       - SPRING_REDIS_HOST=redis
+      - SPRING_REDIS_PORT=6379
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8082/actuator/health"]
       interval: 30s
@@ -115,7 +114,6 @@ services:
       retries: 5
       start_period: 60s
 
-  # Order Service
   order-service:
     build: ./order
     container_name: order-service
@@ -147,7 +145,6 @@ services:
       retries: 5
       start_period: 60s
 
-  # Payment Service (ОБНОВЛЕННЫЙ)
   payment-service:
     build:
       context: ./payment
@@ -166,52 +163,33 @@ services:
         condition: service_healthy
     environment:
       - SPRING_PROFILES_ACTIVE=docker
-
-      # Database
       - SPRING_DATASOURCE_URL=jdbc:oracle:thin:@oracle-db:1521/FREEPDB1
       - SPRING_DATASOURCE_USERNAME=system
       - SPRING_DATASOURCE_PASSWORD=StrongPassword123
-
-      # Service Discovery
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://registr-service:8761/eureka/
       - EUREKA_INSTANCE_PREFERIPADDRESS=true
-
-      # RabbitMQ
       - SPRING_RABBITMQ_HOST=rabbitmq
       - SPRING_RABBITMQ_PORT=5672
       - SPRING_RABBITMQ_USERNAME=user
       - SPRING_RABBITMQ_PASSWORD=password
       - SPRING_RABBITMQ_VIRTUAL_HOST=/
-
-      # Server
       - SERVER_PORT=9002
       - SERVER_SERVLET_CONTEXT_PATH=/payment-service
-
-      # Payme Configuration
       - PAYME_MERCHANT_ID=65dca8e90412e2000198a7a8
       - PAYME_MERCHANT_KEY=key_for_test_environment_12345
       - PAYME_CHECKOUT_URL=https://test.paycom.uz
       - PAYME_ALLOWED_IPS=91.232.226.0/24,185.184.12.0/24,127.0.0.1,172.0.0.0/8
-
-      # Click Configuration
       - CLICK_MERCHANT_SERVICE_ID=84443
       - CLICK_MERCHANT_SECRET_KEY=brgrW88TGYBpsA
       - CLICK_MERCHANT_ID=test_click_merchant_id
       - CLICK_CHECKOUT_URL=https://my.click.uz/services/pay
       - CLICK_ALLOWED_IPS=91.232.226.0/24,185.184.12.0/24,127.0.0.1,172.0.0.0/8
-
-      # Payment Settings
       - PAYMENT_IDEMPOTENCY_EXPIRY_HOURS=24
       - PAYMENT_TRANSACTION_TIMEOUT_MINUTES=30
       - PAYMENT_MAX_RETRY_ATTEMPTS=3
-
-      # Logging
       - LOGGING_LEVEL_COM_EXAMPLE_PAYMENTSERVICE=DEBUG
       - LOGGING_LEVEL_ORG_HIBERNATE_SQL=DEBUG
-
-      # JVM Options
       - JAVA_OPTS=-Xms512m -Xmx1024m -XX:+UseG1GC -Djava.security.egd=file:/dev/./urandom
-
     volumes:
       - payment-logs:/app/logs
     healthcheck:
@@ -222,7 +200,6 @@ services:
       start_period: 90s
     restart: unless-stopped
 
-  # API Gateway
   gateway-service:
     build: ./gateway
     container_name: gateway-service
