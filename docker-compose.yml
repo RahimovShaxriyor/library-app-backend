@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   oracle-db:
     container_name: oracle-db
@@ -7,19 +5,20 @@ services:
     restart: unless-stopped
     ports:
       - "1521:1521"
-      - "5501:5500"
+      - "5500:5500"
     environment:
       ORACLE_PWD: StrongPassword123
+      ORACLE_CHARACTERSET: AL32UTF8
     volumes:
-      - oracle-data:/opt/oracle/oradata
+      - /home/${USER}/oracle-data:/opt/oracle/oradata
     networks:
       - library-network
     healthcheck:
-      test: ["CMD", "bash", "-c", "echo 'SELECT 1 FROM DUAL;' | sqlplus -L system/StrongPassword123@//localhost:1521/FREEPDB1"]
-      interval: 30s
+      test: ["CMD-SHELL", "pgrep -f tnslsnr > /dev/null && echo 'Listener up'"]
+      interval: 60s
       timeout: 20s
       retries: 10
-      start_period: 120s
+      start_period: 180s
 
   redis:
     image: redis:latest
@@ -232,7 +231,6 @@ networks:
     driver: bridge
 
 volumes:
-  oracle-data:
   rabbitmq_data:
   rabbitmq_logs:
   redis_data:
