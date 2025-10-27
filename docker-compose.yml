@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   oracle-db:
     container_name: oracle-db
@@ -14,31 +16,37 @@ services:
     networks:
       - library-network
     healthcheck:
-      test: ["CMD-SHELL", "pgrep -f tnslsnr > /dev/null && echo 'Listener up'"]
+      test: ["CMD", "bash", "-c", "echo 'SELECT 1 FROM DUAL;' | sqlplus -s system/StrongPassword123@localhost:1521/FREEPDB1 > /dev/null 2>&1 || exit 1"]
       interval: 60s
-      timeout: 20s
-      retries: 10
-      start_period: 180s
+      timeout: 30s
+      retries: 20
+      start_period: 300s
+    deploy:
+      resources:
+        limits:
+          memory: 3G
+        reservations:
+          memory: 2G
 
   redis:
-    image: redis:latest
+    image: redis:7.2-alpine
     container_name: redis
     restart: unless-stopped
     ports:
       - "6379:6379"
-    command: ["redis-server", "--bind", "0.0.0.0"]
+    command: ["redis-server", "--bind", "0.0.0.0", "--requirepass", "redispass123"]
     volumes:
       - redis_data:/data
     networks:
       - library-network
     healthcheck:
-      test: ["CMD", "redis-cli", "-h", "localhost", "ping"]
+      test: ["CMD", "redis-cli", "-a", "redispass123", "ping"]
       interval: 10s
       timeout: 5s
-      retries: 3
+      retries: 5
 
   rabbitmq:
-    image: rabbitmq:3.13-management
+    image: rabbitmq:3.13-management-alpine
     container_name: rabbitmq
     hostname: rabbitmq
     restart: always
@@ -54,7 +62,7 @@ services:
     networks:
       - library-network
     healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "check_port_connectivity"]
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
       interval: 15s
       timeout: 10s
       retries: 5
@@ -70,18 +78,23 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
+      oracle-db:
+        condition: service_healthy
     environment:
       - SPRING_PROFILES_ACTIVE=docker
       - SPRING_RABBITMQ_HOST=rabbitmq
       - SPRING_RABBITMQ_PORT=5672
       - SPRING_RABBITMQ_USERNAME=user
       - SPRING_RABBITMQ_PASSWORD=password
+      - SPRING_DATASOURCE_URL=jdbc:oracle:thin:@oracle-db:1521/FREEPDB1
+      - SPRING_DATASOURCE_USERNAME=system
+      - SPRING_DATASOURCE_PASSWORD=StrongPassword123
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8761/actuator/health"]
       interval: 20s
       timeout: 10s
       retries: 5
-      start_period: 40s
+      start_period: 60s
 
   auth-service:
     build: ./auth
@@ -106,12 +119,13 @@ services:
       - SPRING_RABBITMQ_HOST=rabbitmq
       - SPRING_REDIS_HOST=redis
       - SPRING_REDIS_PORT=6379
+      - SPRING_REDIS_PASSWORD=redispass123
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8082/actuator/health"]
       interval: 30s
       timeout: 15s
       retries: 5
-      start_period: 60s
+      start_period: 90s
 
   order-service:
     build: ./order
@@ -142,7 +156,7 @@ services:
       interval: 30s
       timeout: 15s
       retries: 5
-      start_period: 60s
+      start_period: 90s
 
   payment-service:
     build:
@@ -177,12 +191,12 @@ services:
       - PAYME_MERCHANT_ID=65dca8e90412e2000198a7a8
       - PAYME_MERCHANT_KEY=key_for_test_environment_12345
       - PAYME_CHECKOUT_URL=https://test.paycom.uz
-      - PAYME_ALLOWED_IPS=91.232.226.0/24,185.184.12.0/24,127.0.0.1,172.0.0.0/8
+      - PAYME_ALLOWED_IPS=91.232.226.0/24,185.184.12.0/24,127.0.0.1,172.17.0.0/16,172.18.0.0/16
       - CLICK_MERCHANT_SERVICE_ID=84443
-      - CLICK_MERCHANT_SECRET_KEY=brgrW88TGYBpsA
+      - CLICK_MERCHANT_SECRET_KEY=brgrW88TGYBpsAdocks
       - CLICK_MERCHANT_ID=test_click_merchant_id
       - CLICK_CHECKOUT_URL=https://my.click.uz/services/pay
-      - CLICK_ALLOWED_IPS=91.232.226.0/24,185.184.12.0/24,127.0.0.1,172.0.0.0/8
+      - CLICK_ALLOWED_IPS=91.232.226.0/24,185.184.12.0/24,127.0.0.1,172.17.0.0/16,172.18.0.0/16
       - PAYMENT_IDEMPOTENCY_EXPIRY_HOURS=24
       - PAYMENT_TRANSACTION_TIMEOUT_MINUTES=30
       - PAYMENT_MAX_RETRY_ATTEMPTS=3
@@ -196,7 +210,7 @@ services:
       interval: 30s
       timeout: 15s
       retries: 5
-      start_period: 90s
+      start_period: 120s
     restart: unless-stopped
 
   gateway-service:
@@ -224,7 +238,7 @@ services:
       interval: 30s
       timeout: 15s
       retries: 5
-      start_period: 60s
+      start_period: 90s
 
 networks:
   library-network:
