@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   oracle-db:
     container_name: oracle-db
@@ -12,7 +10,7 @@ services:
       ORACLE_PWD: StrongPassword123
       ORACLE_CHARACTERSET: AL32UTF8
     volumes:
-      - /home/shaxriyor/oracle-data:/opt/oracle/oradata
+      - oracle_data:/opt/oracle/oradata
     networks:
       - library-network
     healthcheck:
@@ -34,7 +32,7 @@ services:
     restart: unless-stopped
     ports:
       - "6379:6379"
-    command: ["redis-server", "--bind", "0.0.0.0", "--requirepass", "redispass123"]
+    command: ["redis-server", "--bind", "0.0.0.0", "--requirepass", "redispass123", "--appendonly", "yes"]
     volumes:
       - redis_data:/data
     networks:
@@ -56,6 +54,7 @@ services:
     environment:
       RABBITMQ_DEFAULT_USER: user
       RABBITMQ_DEFAULT_PASS: password
+      RABBITMQ_SSL: "false"
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
       - rabbitmq_logs:/var/log/rabbitmq
@@ -89,12 +88,15 @@ services:
       - SPRING_DATASOURCE_URL=jdbc:oracle:thin:@oracle-db:1521/FREEPDB1
       - SPRING_DATASOURCE_USERNAME=system
       - SPRING_DATASOURCE_PASSWORD=StrongPassword123
+      - MANAGEMENT_ENDPOINT_HEALTH_PROBES_ENABLED=true
+      - MANAGEMENT_HEALTH_LDAP_ENABLED=false
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8761/actuator/health"]
       interval: 20s
       timeout: 10s
       retries: 5
       start_period: 60s
+    restart: unless-stopped
 
   auth-service:
     build: ./auth
@@ -120,12 +122,14 @@ services:
       - SPRING_REDIS_HOST=redis
       - SPRING_REDIS_PORT=6379
       - SPRING_REDIS_PASSWORD=redispass123
+      - MANAGEMENT_ENDPOINT_HEALTH_PROBES_ENABLED=true
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8082/actuator/health"]
       interval: 30s
       timeout: 15s
       retries: 5
       start_period: 90s
+    restart: unless-stopped
 
   order-service:
     build: ./order
@@ -151,12 +155,14 @@ services:
       - SPRING_RABBITMQ_PORT=5672
       - SPRING_RABBITMQ_USERNAME=user
       - SPRING_RABBITMQ_PASSWORD=password
+      - MANAGEMENT_ENDPOINT_HEALTH_PROBES_ENABLED=true
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8081/actuator/health"]
       interval: 30s
       timeout: 15s
       retries: 5
       start_period: 90s
+    restart: unless-stopped
 
   payment-service:
     build:
@@ -202,9 +208,10 @@ services:
       - PAYMENT_MAX_RETRY_ATTEMPTS=3
       - LOGGING_LEVEL_COM_EXAMPLE_PAYMENTSERVICE=DEBUG
       - LOGGING_LEVEL_ORG_HIBERNATE_SQL=DEBUG
+      - MANAGEMENT_ENDPOINT_HEALTH_PROBES_ENABLED=true
       - JAVA_OPTS=-Xms512m -Xmx1024m -XX:+UseG1GC -Djava.security.egd=file:/dev/./urandom
     volumes:
-      - payment-logs:/app/logs
+      - payment_logs:/app/logs
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9002/payment-service/actuator/health"]
       interval: 30s
@@ -233,19 +240,27 @@ services:
       - SPRING_PROFILES_ACTIVE=docker
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://registr-service:8761/eureka/
       - EUREKA_INSTANCE_PREFERIPADDRESS=true
+      - MANAGEMENT_ENDPOINT_HEALTH_PROBES_ENABLED=true
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
       interval: 30s
       timeout: 15s
       retries: 5
       start_period: 90s
+    restart: unless-stopped
 
 networks:
   library-network:
     driver: bridge
 
 volumes:
+  oracle_data:
+    driver: local
   rabbitmq_data:
+    driver: local
   rabbitmq_logs:
+    driver: local
   redis_data:
-  payment-logs:
+    driver: local
+  payment_logs:
+    driver: local
