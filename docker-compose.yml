@@ -12,7 +12,7 @@ services:
       ORACLE_PWD: StrongPassword123
       ORACLE_CHARACTERSET: AL32UTF8
     volumes:
-      - /home/${USER}/oracle-data:/opt/oracle/oradata
+      - /home/shaxriyor/oracle-data:/opt/oracle/oradata
     networks:
       - library-network
     healthcheck:
