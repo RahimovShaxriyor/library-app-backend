@@ -88,9 +88,8 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
         """, nativeQuery = true)
     List<Map<String, Object>> getHourlyStats(@Param("startDate") LocalDateTime startDate);
 
-    // НОВЫЕ МЕТОДЫ ДЛЯ УЛУЧШЕНИЙ
 
-    // Idempotency key tracking
+
     @Query("SELECT p FROM Payment p WHERE p.metadata LIKE %:idempotencyKey%")
     Optional<Payment> findByMetadataContainingIdempotencyKey(@Param("idempotencyKey") String idempotencyKey);
 
@@ -165,7 +164,7 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
             "WHERE p.status = 'SUCCESS' AND p.completedAt IS NOT NULL AND p.createdAt >= :since")
     Optional<Double> getAverageProcessingTime(@Param("since") LocalDateTime since);
 
-    // Risk management
+
     @Query("SELECT p FROM Payment p WHERE p.amount > :threshold AND p.status = 'PENDING'")
     List<Payment> findHighValuePendingPayments(@Param("threshold") BigDecimal threshold);
 

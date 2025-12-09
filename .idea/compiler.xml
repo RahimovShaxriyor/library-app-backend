@@ -6,14 +6,14 @@
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
-        <module name="auth-service" />
+        <module name="registr" />
         <module name="payment-service" />
         <module name="config-service" />
         <module name="auth" />
         <module name="auth-service (1)" />
         <module name="api-gateway" />
+        <module name="payment" />
         <module name="registr-service" />
-        <module name="order" />
       </profile>
       <profile name="Annotation profile for library-app-backend" enabled="true">
         <sourceOutputDir name="target/generated-sources/annotations" />
@@ -40,6 +40,26 @@
         </processorPath>
         <module name="order-service" />
       </profile>
+      <profile name="Annotation profile for auth-service" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <processorPath useClasspath="false">
+          <entry name="$MAVEN_REPOSITORY$/org/projectlombok/lombok/1.18.32/lombok-1.18.32.jar" />
+          <entry name="$MAVEN_REPOSITORY$/org/mapstruct/mapstruct-processor/1.5.5.Final/mapstruct-processor-1.5.5.Final.jar" />
+        </processorPath>
+        <module name="auth-service" />
+      </profile>
+      <profile name="Annotation profile for order" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <processorPath useClasspath="false">
+          <entry name="$MAVEN_REPOSITORY$/org/projectlombok/lombok/1.18.32/lombok-1.18.32.jar" />
+          <entry name="$MAVEN_REPOSITORY$/org/mapstruct/mapstruct-processor/1.5.5.Final/mapstruct-processor-1.5.5.Final.jar" />
+        </processorPath>
+        <module name="order" />
+      </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
       <module name="paymet-service" target="1.5" />
@@ -56,7 +76,9 @@
       <module name="config-service" options="-parameters" />
       <module name="order" options="-parameters" />
       <module name="order-service" options="-parameters" />
+      <module name="payment" options="-parameters" />
       <module name="payment-service" options="-parameters" />
+      <module name="registr" options="-parameters" />
       <module name="registr-service" options="-parameters" />
       <module name="registry-service" options="-parameters" />
     </option>
