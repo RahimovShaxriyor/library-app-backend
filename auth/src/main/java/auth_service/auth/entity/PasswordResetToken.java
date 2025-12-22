@@ -12,7 +12,8 @@ import java.util.UUID;
 public class PasswordResetToken {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "pwd_reset_seq")
+    @SequenceGenerator(name = "pwd_reset_seq", sequenceName = "password_reset_token_seq", allocationSize = 1)
     private Long id;
 
     @Column(nullable = false, unique = true)
@@ -30,36 +31,5 @@ public class PasswordResetToken {
         this.token = UUID.randomUUID().toString();
         this.expiryDate = Instant.now().plusSeconds(3600);
     }
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getToken() {
-        return token;
-    }
-
-    public void setToken(String token) {
-        this.token = token;
-    }
-
-    public User getUser() {
-        return user;
-    }
-
-    public void setUser(User user) {
-        this.user = user;
-    }
-
-    public Instant getExpiryDate() {
-        return expiryDate;
-    }
-
-    public void setExpiryDate(Instant expiryDate) {
-        this.expiryDate = expiryDate;
-    }
+    // Геттеры и сеттеры удалены, так как @Data их генерирует автоматически
 }

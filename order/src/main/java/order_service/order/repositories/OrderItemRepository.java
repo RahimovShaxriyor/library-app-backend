@@ -25,17 +25,14 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
             "FROM OrderItem oi WHERE oi.bookId = :bookId AND oi.order.status IN :statuses")
     boolean hasActiveOrdersForBook(@Param("bookId") Long bookId, @Param("statuses") List<OrderStatus> statuses);
 
-    // Поиск всех OrderItems по bookId
     List<OrderItem> findByBookId(Long bookId);
 
     Page<OrderItem> findByBookId(Long bookId, Pageable pageable);
 
-    // Поиск OrderItems по статусу заказа
     List<OrderItem> findByOrder_Status(OrderStatus status);
 
     Page<OrderItem> findByOrder_Status(OrderStatus status, Pageable pageable);
 
-    // Поиск OrderItems по bookId и статусу заказа
     List<OrderItem> findByBookIdAndOrder_Status(Long bookId, OrderStatus status);
 
     Page<OrderItem> findByBookIdAndOrder_Status(Long bookId, OrderStatus status, Pageable pageable);
@@ -89,15 +86,12 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
 
     Page<OrderItem> findByQuantityGreaterThan(Integer quantity, Pageable pageable);
 
-    // Поиск OrderItems по цене
     @Query("SELECT oi FROM OrderItem oi WHERE oi.price BETWEEN :minPrice AND :maxPrice")
     List<OrderItem> findByPriceBetween(@Param("minPrice") BigDecimal minPrice, @Param("maxPrice") BigDecimal maxPrice);
 
-    // Получение средней цены OrderItem по книге
     @Query("SELECT AVG(oi.price) FROM OrderItem oi WHERE oi.bookId = :bookId")
     Double findAveragePriceByBookId(@Param("bookId") Long bookId);
 
-    // Получение OrderItems с пагинацией и сортировкой
     @Query("SELECT oi FROM OrderItem oi ORDER BY oi.order.createdAt DESC")
     Page<OrderItem> findAllOrderItems(Pageable pageable);
 

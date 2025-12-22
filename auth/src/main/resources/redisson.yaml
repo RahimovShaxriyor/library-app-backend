@@ -1,0 +1,21 @@
+singleServerConfig:
+  address: "redis://redis:6379"
+  connectionMinimumIdleSize: 10
+  connectionPoolSize: 64
+  subscriptionConnectionPoolSize: 50
+  idleConnectionTimeout: 10000
+  connectTimeout: 10000
+  timeout: 3000
+  retryAttempts: 3
+  retryInterval: 1500
+  subscriptionsPerConnection: 5
+  pingConnectionInterval: 30000
+  keepAlive: true
+  tcpNoDelay: true
+
+threads: 16
+nettyThreads: 32
+codec: !<org.redisson.codec.JsonJacksonCodec> {}
+
+# Configuration for Redisson
+# See https://redisson.org for more details

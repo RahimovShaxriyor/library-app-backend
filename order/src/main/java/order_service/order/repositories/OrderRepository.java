@@ -5,9 +5,11 @@ import order_service.order.model.OrderStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import jakarta.persistence.LockModeType;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -48,13 +50,15 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     @Query("SELECT o.status, COUNT(o) FROM Order o GROUP BY o.status")
     List<Object[]> countOrdersByStatus();
 
-    @Query("SELECT o FROM Order o WHERE o.userId = :userId ORDER BY o.createdAt DESC")
-    List<Order> findRecentOrdersByUserId(@Param("userId") String userId, Pageable pageable);
+    // Исправлено именование для автоматической генерации запроса
+    List<Order> findByUserIdOrderByCreatedAtDesc(String userId, Pageable pageable);
 
     Optional<Order> findByOrderNumber(String orderNumber);
 
     boolean existsByIdAndUserId(Long id, String userId);
 
+    // Используем пессимистическую блокировку для предотвращения Race Condition при обновлении статуса или оплаты
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT o FROM Order o WHERE o.id = :id")
     Optional<Order> findByIdForUpdate(@Param("id") Long id);
 }

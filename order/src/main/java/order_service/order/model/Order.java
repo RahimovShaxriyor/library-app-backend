@@ -108,4 +108,8 @@ public class Order {
                 ", orderNumber='" + orderNumber + '\'' +
                 '}';
     }
+
+    public void setShippedAt(LocalDateTime now) {
+        return;
+    }
 }
