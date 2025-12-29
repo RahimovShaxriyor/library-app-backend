@@ -1,14 +1,12 @@
-name: CI/CD Pipeline
+name: CI/CD Pipeline (No DockerHub)
 
 on:
   push:
     branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
 
 jobs:
   build:
-    runs-on: ubuntu-latest 
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout source
@@ -23,34 +21,12 @@ jobs:
       - name: Build with Maven
         run: mvn clean package -DskipTests
 
-      - name: Build Docker images
-        run: |
-          docker build -t  avah326/auth-service ./auth
-          docker build -t  avah326/order-service ./order
-          docker build -t  avah326/payment-service ./payment
-          docker build -t  avah326/registr-service ./registr
-          docker build -t  avah326/api-gateway ./api-gateway
-
-      - name: Login to DockerHub
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Push Docker images
-        run: |
-          docker push your-dockerhub-user/auth-service
-          docker push your-dockerhub-user/order-service
-          docker push your-dockerhub-user/payment-service
-          docker push your-dockerhub-user/registr-service
-          docker push your-dockerhub-user/api-gateway
-
   deploy:
     runs-on: ubuntu-latest
     needs: build
 
     steps:
-      - name: SSH to server and deploy
+      - name: Deploy to server via SSH
         uses: appleboy/ssh-action@v0.1.10
         with:
           host: ${{ secrets.SERVER_HOST }}
@@ -59,5 +35,5 @@ jobs:
           script: |
             cd ~/library-app-backend
             git pull origin main
-            docker compose pull
+            docker compose build
             docker compose up -d --remove-orphans
