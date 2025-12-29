@@ -25,11 +25,11 @@ jobs:
 
       - name: Build Docker images
         run: |
-          docker build -t your-dockerhub-user/auth-service ./auth
-          docker build -t your-dockerhub-user/order-service ./order
-          docker build -t your-dockerhub-user/payment-service ./payment
-          docker build -t your-dockerhub-user/registr-service ./registr
-          docker build -t your-dockerhub-user/api-gateway ./api-gateway
+          docker build -t  avah326/auth-service ./auth
+          docker build -t  avah326/order-service ./order
+          docker build -t  avah326/payment-service ./payment
+          docker build -t  avah326/registr-service ./registr
+          docker build -t  avah326/api-gateway ./api-gateway
 
       - name: Login to DockerHub
         uses: docker/login-action@v2
