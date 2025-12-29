@@ -33,6 +33,7 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
+            sudo -i
             cd ~/library-app-backend
             git pull origin main
             docker compose build
