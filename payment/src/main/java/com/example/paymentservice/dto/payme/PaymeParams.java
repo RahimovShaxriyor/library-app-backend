@@ -44,12 +44,10 @@ public class PaymeParams {
         @JsonProperty("order_id")
         private String orderId;
 
-        // Дополнительные поля, которые могут быть в account
         private String phone;
         private String email;
         private String user_id;
 
-        // Конструкторы для удобства
         public Account() {}
 
         public Account(String orderId) {

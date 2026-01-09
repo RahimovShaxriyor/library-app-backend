@@ -42,7 +42,6 @@ public class AdminService {
             if (email != null && !email.isBlank()) {
                 predicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get("email")), "%" + email.toLowerCase() + "%"));
             }
-            // Здесь можно добавить фильтрацию по ролям и статусу
             return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
         };
 
@@ -80,12 +79,10 @@ public class AdminService {
         targetUser.setStatusReason(request.getReason());
         userRepository.save(targetUser);
 
-        // Если пользователя блокируют, принудительно завершаем все его сессии
         if (request.getStatus() == UserStatus.SUSPENDED) {
             refreshTokenService.deleteAllTokensForUser(targetUserId);
         }
 
-        // Логирование действия администратора
         String details = String.format("Статус пользователя изменен на %s. Причина: %s", request.getStatus(), request.getReason());
         auditService.logEvent(AuditEventType.ADMIN_USER_STATUS_CHANGED, adminUser, targetUser, getCurrentRequestIpAddress(), details);
     }

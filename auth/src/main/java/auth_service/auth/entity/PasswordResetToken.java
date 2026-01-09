@@ -31,5 +31,4 @@ public class PasswordResetToken {
         this.token = UUID.randomUUID().toString();
         this.expiryDate = Instant.now().plusSeconds(3600);
     }
-    // Геттеры и сеттеры удалены, так как @Data их генерирует автоматически
 }

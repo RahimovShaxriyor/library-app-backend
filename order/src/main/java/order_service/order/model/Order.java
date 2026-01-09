@@ -24,7 +24,7 @@ public class Order {
     @SequenceGenerator(
             name = "order_seq",
             sequenceName = "ORDER_SEQ",
-            allocationSize = 50
+            allocationSize = 1
     )
     @GeneratedValue(
             strategy = GenerationType.SEQUENCE,
@@ -67,8 +67,6 @@ public class Order {
     @Column(name = "paid_at")
     private LocalDateTime paidAt;
 
-
-
     @Column(name = "delivered_at")
     private LocalDateTime deliveredAt;
 
@@ -79,13 +77,16 @@ public class Order {
     private String orderNumber;
 
     public void addOrderItem(OrderItem item) {
+        if (items == null) items = new ArrayList<>();
         items.add(item);
         item.setOrder(this);
     }
 
     public void removeOrderItem(OrderItem item) {
-        items.remove(item);
-        item.setOrder(null);
+        if (items != null) {
+            items.remove(item);
+            item.setOrder(null);
+        }
     }
 
     public boolean canBeCancelled() {
@@ -96,6 +97,14 @@ public class Order {
         return status == OrderStatus.DELIVERED || status == OrderStatus.CANCELLED;
     }
 
+    public void setShippedAt(LocalDateTime shippedAt) {
+        this.deliveredAt = shippedAt;
+        if (shippedAt != null) {
+            this.status = OrderStatus.DELIVERED;
+        }
+    }
+
+    // ================== toString ==================
     @Override
     public String toString() {
         return "Order{" +
@@ -105,11 +114,11 @@ public class Order {
                 ", totalPrice=" + totalPrice +
                 ", status=" + status +
                 ", createdAt=" + createdAt +
+                ", paidAt=" + paidAt +
+                ", deliveredAt=" + deliveredAt +
+                ", cancelledAt=" + cancelledAt +
                 ", orderNumber='" + orderNumber + '\'' +
+                ", itemsCount=" + (items != null ? items.size() : 0) +
                 '}';
-    }
-
-    public void setShippedAt(LocalDateTime now) {
-        return;
     }
 }

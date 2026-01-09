@@ -25,7 +25,11 @@ public class Payment {
 
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "payment_seq")
-    @SequenceGenerator(name = "payment_seq", sequenceName = "PAYMENT_SEQ", allocationSize = 50)
+    @SequenceGenerator(
+            name = "payment_seq",
+            sequenceName = "PAYMENT_SEQ",
+            allocationSize = 1 // ✅ ВАЖНО
+    )
     private Long id;
 
     @Column(name = "order_id", nullable = false)
@@ -119,21 +123,20 @@ public class Payment {
     @Version
     private Long version;
 
-    // Конструкторы
+    // ===== Constructors =====
+
     public Payment() {
-        this.createdAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
     }
 
     public Payment(Long orderId, BigDecimal amount, PaymentProvider provider) {
-        this();
         this.orderId = orderId;
         this.amount = amount;
         this.provider = provider;
         this.status = PaymentStatus.PENDING;
     }
 
-    // Бизнес-методы
+    // ===== Business logic =====
+
     public boolean canBeCancelled() {
         return status == PaymentStatus.PENDING;
     }
@@ -148,7 +151,7 @@ public class Payment {
 
     public boolean shouldRetry() {
         return status == PaymentStatus.FAILED &&
-                attemptCount < maxAttempts &&
+                getAttemptCount() < getMaxAttempts() &&
                 (nextRetryAt == null || LocalDateTime.now().isAfter(nextRetryAt));
     }
 
@@ -156,7 +159,6 @@ public class Payment {
         this.status = PaymentStatus.SUCCESS;
         this.providerTransactionId = providerTransactionId;
         this.completedAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
         this.errorCode = null;
         this.errorMessage = null;
     }
@@ -165,11 +167,10 @@ public class Payment {
         this.status = PaymentStatus.FAILED;
         this.errorCode = errorCode;
         this.errorMessage = errorMessage;
-        this.attemptCount++;
-        this.updatedAt = LocalDateTime.now();
+        this.attemptCount = getAttemptCount() + 1;
 
-        if (this.attemptCount < this.maxAttempts) {
-            this.nextRetryAt = LocalDateTime.now().plusMinutes(5 * this.attemptCount); // Exponential backoff
+        if (getAttemptCount() < getMaxAttempts()) {
+            this.nextRetryAt = LocalDateTime.now().plusMinutes(5L * getAttemptCount());
         }
     }
 
@@ -177,7 +178,6 @@ public class Payment {
         this.status = PaymentStatus.CANCELLED;
         this.cancellationReason = reason;
         this.cancelledAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
     }
 
     public void markAsRefunded(BigDecimal amount, String reason) {
@@ -185,10 +185,8 @@ public class Payment {
         this.refundAmount = amount;
         this.refundReason = reason;
         this.refundedAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
     }
 
-    // Методы для установки времени истечения
     public void setExpirationInMinutes(int minutes) {
         this.expiresAt = LocalDateTime.now().plusMinutes(minutes);
     }
@@ -197,7 +195,8 @@ public class Payment {
         this.expiresAt = LocalDateTime.now().plusHours(hours);
     }
 
-    // Getters with null-safety
+    // ===== Null-safety getters =====
+
     public BigDecimal getRefundAmount() {
         return refundAmount != null ? refundAmount : BigDecimal.ZERO;
     }
